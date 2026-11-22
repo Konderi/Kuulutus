@@ -223,6 +223,12 @@ button.b:disabled{opacity:.45;cursor:default;transform:none}
 .queue-bar{position:sticky;bottom:calc(var(--nav-h) + var(--safe-b) + 10px);z-index:10;display:flex;gap:10px;background:color-mix(in srgb,var(--bg) 80%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:10px;margin:0 -10px 14px;border-radius:16px}
 .queue-bar #btnEvNext{flex:1}
 @media (min-width:1024px){.queue-bar{bottom:12px}}
+.pen-list{display:flex;flex-direction:column;gap:8px}
+.pen{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.pen-team{font:700 13px/1.2 var(--f-head);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.pen-who{font-weight:600;margin:2px 0}
+.pen-time{font-size:13px;color:var(--muted)}
+.pen-time b{color:var(--ink);font-variant-numeric:tabular-nums}
 .man-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .man-grid .b{white-space:normal;text-align:center;line-height:1.2;padding:8px 12px;min-height:52px}
 .man-saves{display:flex;gap:6px}
@@ -428,9 +434,18 @@ details.help p{margin:4px 0 0}
     <button class="b xl" id="btnEvStop" aria-label="Pysäytä">■</button>
     <button class="b xl ghost" id="btnEvClear" title="Tyhjennä jono" aria-label="Tyhjennä jono">✕</button>
   </div>
+  <div class="card" id="penCard" hidden>
+    <div class="card-head"><h2>Rangaistukset käynnissä</h2><span class="pill" id="penStrength"></span></div>
+    <div id="penList" class="pen-list"></div>
+    <p class="small muted" style="margin:10px 0 0">TiTun kello voi olla hallin kellosta jäljessä. Vertaa päättymisaikaa hallin kelloon ja paina <b>Päättyi</b>, kun rangaistus päättyy – kuulutus (esim. ”täysilukuinen”) tehdään ohjeen mukaan.</p>
+  </div>
   <div class="card">
     <div class="card-head"><h2>Muut kuulutukset</h2></div>
     <div class="man-grid">
+      <button class="b" data-man="full">Joukkueet täysilukuiset</button>
+      <button class="b" data-man="homeFull">Koti täysilukuinen</button>
+      <button class="b" data-man="awayFull">Vieras täysilukuinen</button>
+      <button class="b" data-man="even">Joukkueet tasalukuiset</button>
       <button class="b" data-man="respect">Kunnioita peliä</button>
       <button class="b" data-man="min1">1. erää jäljellä 1 min</button>
       <button class="b" data-man="min2">2. erää jäljellä 1 min</button>
@@ -468,7 +483,7 @@ S.lang ||= "fi"; S.voices ||= {fi:"", en:""}; S.rate = S.rate || 0.95;
 if (S.voiceMig !== 3) { S.voices = {fi:"", en:""}; S.voiceMig = 3; }   // oletusääni listan ensimmäinen (Jarmo / ElevenLabs)
 S.style ||= "announcer";   // oletusääni Noora (mitattu luotettavimmaksi)
 S.ev ||= {gameId:null, follow:false, auto:false, types:{Goal:true, Penalty:true, Timeout:true, GK:true}, seen:{}, read:{}};
-S.ev.types.PX ??= true; S.opts.welcome ??= true; S.opts.refs ??= true; if (S.opts.coachDefault !== 1) { S.opts.coach = true; S.opts.coachDefault = 1; }
+S.ev.types.PX ??= false; if (S.ev.pxMig !== 1) { S.ev.types.PX = false; S.ev.pxMig = 1; } S.ev.manualEnded ||= {}; S.opts.welcome ??= true; S.opts.refs ??= true; if (S.opts.coachDefault !== 1) { S.opts.coach = true; S.opts.coachDefault = 1; }
 if (!["home","away","both"].includes(S.ann)) S.ann = "away";
 function load(){ try { return JSON.parse(localStorage.getItem(KEY)); } catch { return null; } }
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} }
@@ -1050,7 +1065,7 @@ const EVP = {
     gtype:{YV:"power play", AV:"short-handed", TM:"empty net", RL:"penalty shot"},
     pen:m => ({2:"2 minutes", 4:"2 plus 2 minutes", 5:"5 minutes", 10:"a 10-minute misconduct", 20:"a game misconduct", 25:"a match penalty"}[m] || `${m} minutes`)},
 };
-let EV = null, evTimer = null, evTried = false;
+let EV = null, evTimer = null, evTried = false, STRENGTH = null;
 const evQueue = [];   // [{key, time}] – time = tapahtuman peliaika
 let ITEMS = [];       // kuulutettavat kohteet (samanaikaiset rangaistukset yhdistetty)
 const evGroup = t => t && t.startsWith("GK") ? "GK" : t === "PG" ? "Penalty" : t;
@@ -1072,21 +1087,26 @@ function evList(b, P, side, list){ list.forEach((pp, i) => { if (i) txt(b, i ===
 // Käytös-, peli- ja ottelurangaistukset (10/20/25) eivät tässä mallissa muuta voimasuhdetta.
 // Enintään kaksi pelaajaa voi olla vajaana kerrallaan; kolmas rangaistus alkaa ensimmäisen päättyessä.
 const PEN_DUR = {2: {d:120, kind:"minor"}, 4: {d:240, kind:"double"}, 5: {d:300, kind:"major"}};
-function computeStrength(events, now){
+// Voimasuhteen muutoksen kuulutus ohjeen taulukon mukaan (null = ei kuulutusta)
+function strengthMsg(before, after){
+  if (before[0] === after[0] && before[1] === after[1]) return null;
+  const [h, a] = after, [h0, a0] = before;
+  if (h === 5 && a === 5) return {kind: "full"};
+  if (h === a) return {kind: "even"};
+  if (h === 5 && h0 < 5) return {kind: "teamFull", side: "home"};
+  if (a === 5 && a0 < 5) return {kind: "teamFull", side: "away"};
+  if (h < 5 && a < 5) return {kind: "short", side: h < a ? "home" : "away"};   // esim. 3-3 → 4-3: "Vieras vajaalukuinen"
+  return null;                                                              // esim. 5-3 → 5-4: ei kuulutusta
+}
+// manual = käsin päättyneiksi kuulutetut rangaistukset (tunniste side+alkuaika+järjestys)
+function computeStrength(events, now, manual = new Set()){
   const act = {home: [], away: []}, pend = {home: [], away: []};
   const out = [], penState = {};
   const str = s => 5 - Math.min(2, act[s].length);
   const snap = () => [str("home"), str("away")];
-  const transition = (before, after, time, tag) => {
-    if (before[0] === after[0] && before[1] === after[1]) return;
-    const [h, a] = after, [h0, a0] = before;
-    let msg = null;
-    if (h === 5 && a === 5) msg = {kind: "full"};
-    else if (h === a) msg = {kind: "even"};
-    else if (h === 5 && h0 < 5) msg = {kind: "teamFull", side: "home"};
-    else if (a === 5 && a0 < 5) msg = {kind: "teamFull", side: "away"};
-    else if (h < 5 && a < 5) msg = {kind: "short", side: h < a ? "home" : "away"};   // esim. 3-3 → 4-3: "Vieras vajaalukuinen"
-    if (msg) out.push({key: `PX_${time}_${tag}`, type: "PX", time, before, after, ...msg});
+  const transition = (before, after, time, tags) => {
+    const msg = strengthMsg(before, after);
+    if (msg) out.push({key: `PX_${time}_${tags.join("_")}`, type: "PX", time, before, after, manual: tags.length > 0 && tags.every(t => manual.has(t)), ...msg});
   };
   const startPending = (side, t) => { const p = pend[side].shift(); if (p) act[side].push({...p, end: t + p.d}); };
   // Samaan aikaan päättyvät rangaistukset käsitellään yhdessä → yksi kuulutus (esim. 4-4 → 5-5)
@@ -1097,9 +1117,9 @@ function computeStrength(events, now){
       const T = Math.min(...ends), before = snap(), tags = [];
       for (const s of ["home", "away"]) {
         const done = act[s].filter(p => p.end === T);
-        done.forEach(p => { act[s].splice(act[s].indexOf(p), 1); tags.push(`${s}${p.start}`); startPending(s, T); });
+        done.forEach(p => { act[s].splice(act[s].indexOf(p), 1); tags.push(p.tag); startPending(s, T); });
       }
-      transition(before, snap(), T, tags.join("_"));
+      transition(before, snap(), T, tags);
     }
   };
   const byTime = {};
@@ -1117,22 +1137,24 @@ function computeStrength(events, now){
       if (p.kind === "double" && p.end - t > 120) { p.end = t + 120; p.kind = "minor"; continue; }
       act[opp].splice(act[opp].indexOf(p), 1);
       startPending(opp, t);
-      transition(before, snap(), t, `g${opp}${e.key}`);
+      transition(before, snap(), t, [`g${opp}${e.key}`]);
     }
     const pens = list.filter(x => x.type === "Penalty");
     if (pens.length) {
       const before = snap();
-      for (const e of pens) {
+      pens.forEach((e, i) => {
         const dur = PEN_DUR[e.minutes];
-        if (!dur) continue;
-        const p = {start: t, d: dur.d, kind: dur.kind};
+        if (!dur) return;
+        const p = {start: t, d: dur.d, kind: dur.kind, tag: `${e.side}${t}_${i}`, minutes: e.minutes, side: e.side, player: e.player};
         if (act[e.side].length < 2) act[e.side].push({...p, end: t + p.d}); else pend[e.side].push(p);
-      }
+      });
       penState[t] = {before, after: snap()};
     }
   }
   advance(now);
-  return {items: out, penState};
+  // Käsin kuulutetut päättymiset (hallin kello edellä TiTua): poistetaan käynnissä olevista
+  for (const s of ["home", "away"]) for (const p of [...act[s]]) if (manual.has(p.tag)) { act[s].splice(act[s].indexOf(p), 1); startPending(s, now); }
+  return {items: out, penState, active: {home: [...act.home], away: [...act.away]}, pending: {home: pend.home.length, away: pend.away.length}, strength: snap()};
 }
 function buildItems(events){
   const items = [], pens = {};
@@ -1140,7 +1162,7 @@ function buildItems(events){
     if (e.type === "Penalty") { (pens[e.time] ||= []).push(e); continue; }
     items.push({key: e.key, type: e.type, time: e.time, period: e.period, events: [e], silent: e.type === "GK_start" && !(e.previous && e.previous.nr) && !(e.time > 0)});
   }
-  const st = computeStrength(events, EV?.gameTime || 0);
+  const st = STRENGTH = computeStrength(events, EV?.gameTime || 0, new Set(Object.keys(S.ev.manualEnded || {})));
   for (const [t, list] of Object.entries(pens)) {
     list.sort((a, b) => (a.side === "away" ? 0 : 1) - (b.side === "away" ? 0 : 1));
     items.push({key: list.length > 1 ? `PG_${t}_${list.length}` : list[0].key, type: list.length > 1 ? "PG" : "Penalty", time: +t, period: list[0].period, events: list, strength: st.penState[t]});
@@ -1211,7 +1233,11 @@ function itemBlock(it, lang){
 // ---- muut ohjeen kuulutukset
 function manualBlock(kind, lang){
   const fi = lang === "fi", P = PH[lang];
-  const b = Blk({respect:"Kunnioita peliä", min1:"Erää jäljellä", min2:"Erää jäljellä", min3:"Erää jäljellä", saves:"Torjunnat", crowd:"Yleisömäärä", final:"Lopputulos"}[kind]);
+  const b = Blk({full:"Voimasuhde", homeFull:"Voimasuhde", awayFull:"Voimasuhde", even:"Voimasuhde", respect:"Kunnioita peliä", min1:"Erää jäljellä", min2:"Erää jäljellä", min3:"Erää jäljellä", saves:"Torjunnat", crowd:"Yleisömäärä", final:"Lopputulos"}[kind]);
+  // voimasuhteen kuulutukset suoraan pelitilanteessa (ohjeen kohta F), TiTun kellosta riippumatta
+  if (kind === "full") txt(b, fi ? "Joukkueet täysilukuiset." : "Both teams at full strength.");
+  if (kind === "even") txt(b, fi ? "Joukkueet tasalukuiset." : "Teams at even strength.");
+  if (kind === "homeFull" || kind === "awayFull") { nameSeg(b, evTeamName(kind === "homeFull" ? "home" : "away") || (fi ? (kind === "homeFull" ? "Kotijoukkue" : "Vierasjoukkue") : (kind === "homeFull" ? "Home team" : "Visiting team"))); txt(b, fi ? " täysilukuinen." : " at full strength."); }
   if (kind === "respect") txt(b, fi ? "Jääkiekko-ottelussa ei ole sijaa epäasialliselle käytökselle. Muistetaan hyvä käytös kaukalossa ja sen ulkopuolella!"
                                     : "There is no place for inappropriate behaviour at a hockey game. Let's remember good conduct on and off the ice!");
   if (kind === "min1") txt(b, fi ? "Ensimmäistä erää jäljellä yksi minuutti." : "One minute remaining in the first period.");
@@ -1249,13 +1275,14 @@ async function fetchEvents(){
   try {
     const d = await api(`/api/events?gameid=${S.game.id}&season=${S.game.season || 0}`);
     const firstLoad = S.ev.gameId !== S.game.id;
-    if (firstLoad) { S.ev.gameId = S.game.id; S.ev.seen = {}; S.ev.read = {}; }
+    if (firstLoad) { S.ev.gameId = S.game.id; S.ev.seen = {}; S.ev.read = {}; S.ev.manualEnded = {}; }
     const hadEV = !!EV;
     EV = d; ITEMS = buildItems(d.events);
     // Jo tapahtuneet merkitään nähdyiksi ensimmäisellä haulla, jotta niitä ei kuuluteta jälkikäteen
     const fresh = ITEMS.filter(it => !S.ev.seen[it.key]);
     fresh.forEach(it => S.ev.seen[it.key] = 1);
-    if (!firstLoad) fresh.filter(it => !it.silent && S.ev.types[evGroup(it.type)]).forEach(it => evQueue.push({key: it.key, time: it.time}));
+    if (!firstLoad) fresh.filter(it => !it.silent && !it.manual && S.ev.types[evGroup(it.type)]).forEach(it => evQueue.push({key: it.key, time: it.time}));
+    ITEMS.filter(it => it.manual).forEach(it => S.ev.read[it.key] = 1);
     save(); renderEvents();
     if (!hadEV && document.querySelector("#tab-kuulutus.on")) renderScript();
     const now = new Date().toLocaleTimeString("fi-FI");
@@ -1274,6 +1301,7 @@ function renderEvents(){
   $("#btnEvNext").textContent = evQueue.length ? `▶ Kuuluta jono (${evQueue.length})` : "Jono tyhjä";
   $("#btnEvNext").disabled = !evQueue.length;
   $("#navBadge").hidden = !evQueue.length; $("#navBadge").textContent = evQueue.length;
+  renderPenalties();
   if (!EV) { $("#evScore").textContent = "–"; $("#evList").innerHTML = '<p class="muted small">Ei tapahtumia.</p>'; return; }
   const E = EVP[S.lang];
   if (EV.playedPeriods && !$("#savesPeriod").dataset.touched) $("#savesPeriod").value = String(Math.min(EV.playedPeriods, 4));
@@ -1284,10 +1312,44 @@ function renderEvents(){
   $("#evList").innerHTML = ITEMS.length ? ITEMS.slice().reverse().map(it => {
     const b = itemBlock(it, S.lang), on = S.ev.types[b.kind];
     return `<div class="blk ev ${S.ev.read[it.key] ? "read" : ""} ${on && !b.silent ? "" : "off"}" data-k="${esc(it.key)}">
-      <div class="txt"><h4>${esc(b.h)}${queued.has(it.key) ? (gameResumed(queued.get(it.key)) ? " · ▶ jonossa, peli jatkunut" : " · ⏳ jonossa, odottaa pelin jatkumista") : S.ev.read[it.key] ? " · ✓" : ""}</h4>${b.html}</div>
+      <div class="txt"><h4>${esc(b.h)}${it.manual ? " · ✓ kuulutettu käsin" : queued.has(it.key) ? (gameResumed(queued.get(it.key)) ? " · ▶ jonossa, peli jatkunut" : " · ⏳ jonossa, odottaa pelin jatkumista") : S.ev.read[it.key] ? " · ✓" : ""}</h4>${b.html}</div>
       ${b.silent ? "" : `<button class="b s" data-evsay="${esc(it.key)}" title="Lue ääneen" aria-label="Lue ääneen"></button>`}</div>`;
   }).join("") : '<p class="muted" style="font-size:16px">Ottelussa ei ole vielä tapahtumia.</p>';
 }
+// ---- käynnissä olevat rangaistukset (kuuluttaja vertaa hallin kelloon ja kuuluttaa päättymisen)
+function renderPenalties(){
+  const card = $("#penCard");
+  if (!EV || !STRENGTH) { card.hidden = true; return; }
+  const E = EVP[S.lang], plen = (EV.periodLen || 20) * 60;
+  const rows = ["away", "home"].flatMap(side => STRENGTH.active[side].map(p => ({...p, side})));
+  card.hidden = !rows.length;
+  if (!rows.length) return;
+  const [h, a] = STRENGTH.strength;
+  $("#penStrength").textContent = `${evTeamName("home")} ${h} – ${a} ${evTeamName("away")}`;
+  $("#penList").innerHTML = rows.sort((x, y) => x.end - y.end).map(p => {
+    const per = Math.floor((p.end - 1) / plen) + 1, rem = per * plen - p.end;
+    const who = p.player ? `#${esc(p.player.nr)} ${esc(fullName(p.player))}` : "";
+    const left = per <= 3 ? ` · ${per}. erää jäljellä <b>${E.clock(rem)}</b>` : "";
+    const pend = STRENGTH.pending[p.side] ? ` · +${STRENGTH.pending[p.side]} odottaa` : "";
+    return `<div class="pen"><div><div class="pen-team">${esc(evTeamName(p.side))}</div>
+      <div class="pen-who">${who} · ${esc(E.pen(p.minutes))}</div>
+      <div class="pen-time">päättyy pelikellossa <b>${E.clock(p.end)}</b>${left}${pend}</div></div>
+      <button class="b p" data-penend="${esc(p.tag)}">Päättyi</button></div>`;
+  }).join("");
+}
+$("#penList").onclick = e => {
+  const btn = e.target.closest("[data-penend]"); if (!btn || !EV) return;
+  const tag = btn.dataset.penend, before = STRENGTH.strength;
+  S.ev.manualEnded[tag] = 1; save();
+  ITEMS = buildItems(EV.events);   // laskee voimasuhteen uudelleen käsin päättyneen kanssa
+  const msg = strengthMsg(before, STRENGTH.strength);
+  renderEvents();
+  if (!msg) { $("#evInfo").innerHTML = '<span class="muted">Rangaistus merkitty päättyneeksi – voimasuhteen muutosta ei kuuluteta (ohjeen taulukko).</span>'; return; }
+  const plen = (EV.periodLen || 20) * 60, t = EV.gameTime || 0;
+  const b = itemBlock({type: "PX", key: "manual_" + tag, time: t, period: Math.min(4, Math.floor(Math.max(0, t - 1) / plen) + 1), before, after: STRENGTH.strength, events: [], ...msg}, S.lang);
+  speakSeq([b], () => {});
+};
+
 function itemBlk(key){ const it = ITEMS.find(x => x.key === key); return it ? itemBlock(it, S.lang) : null; }
 function markEv(key){
   document.querySelectorAll("#evList .blk").forEach(el => el.classList.toggle("cur", el.dataset.k === key));

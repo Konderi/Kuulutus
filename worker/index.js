@@ -343,7 +343,7 @@ async function ttsAny(env, ctx, body) {
 // annetaan HMAC-allekirjoitettu eväste (30 vrk). Salasanan vaihto mitätöi vanhat kirjautumiset.
 const COOKIE = "kuulutus_auth";
 const SESSION_DAYS = 30;
-const PUBLIC_PATHS = new Set(["/login", "/logout", "/hyri-logo.png", "/favicon.png", "/apple-touch-icon.png"]);
+const PUBLIC_PATHS = new Set(["/login", "/logout", "/hyri-logo.png", "/favicon.png", "/favicon.ico", "/apple-touch-icon.png"]);
 const enc = new TextEncoder();
 
 async function hmac(secret, data) {
