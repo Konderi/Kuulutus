@@ -140,3 +140,20 @@ npx wrangler dev
 ```
 
 Komento lukee salaisuudet `.env`-tiedostosta.
+
+## Spotify (musiikin ohjaus)
+
+Alareunan soitinpalkista voi ohjata omalla laitteella soivaa Spotifya: toisto ja tauko, seuraava ja edellinen kappale, äänenvoimakkuus ja soittava laite. **Musiikki hiljenee automaattisesti kuulutuksen ajaksi** ja palaa sen jälkeen. Jos laite ei salli äänenvoimakkuuden säätöä, musiikki pysäytetään ja käynnistetään uudelleen.
+
+Edellytykset: Spotify Premium, ja Spotify-sovellus on auki laitteella, jolla musiikki soi.
+
+Käyttöönotto:
+1. Mene osoitteeseen https://developer.spotify.com/dashboard ja valitse **Create app**.
+2. Täytä kentät:
+   - **Redirect URIs:** `https://kuulutus.konderi.fi/`. Paikallista käyttöä varten lisää myös `http://127.0.0.1:8000/`; osoite `localhost` ei kelpaa.
+   - **APIs used:** Web API.
+3. Avaa **Settings → User Management** ja lisää käyttäjien Spotify-sähköpostit. Kehitystilassa käyttäjiä voi olla enintään 5.
+4. Kopioi **Client ID** (se ei ole salainen):
+   - Cloudflare-versioon se lisätään `wrangler.jsonc`-tiedoston kohtaan `vars.SPOTIFY_CLIENT_ID`.
+   - Paikalliseen versioon se lisätään `.env`-tiedostoon riville `SPOTIFY_CLIENT_ID=…`.
+5. Paina sivulla **Yhdistä Spotify**. Kirjautuminen säilyy selaimessa, ja Spotify pyytää sen uudelleen puolen vuoden välein.

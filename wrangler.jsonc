@@ -17,7 +17,9 @@
   // Älä poista Cloudflare-hallinnassa lisättyjä muuttujia julkaisun yhteydessä
   "keep_vars": true,
   "vars": {
-    "AZURE_SPEECH_REGION": "swedencentral"
+    "AZURE_SPEECH_REGION": "swedencentral",
+    // Spotify-sovelluksen Client ID (ei salainen, PKCE); tyhjä = soitinpalkki piilossa
+    "SPOTIFY_CLIENT_ID": ""
   },
   // Salaisuudet (ei tähän tiedostoon): Cloudflare-hallinnasta, tyyppi "Secret" (ei "Text")
   // Workers & Pages → kuulutus → Settings → Variables and Secrets

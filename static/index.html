@@ -32,6 +32,7 @@
     --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);color-scheme:dark}
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--f-body);-webkit-tap-highlight-color:transparent;min-height:100vh}
 h1,h2,h3,h4{font-family:var(--f-head);letter-spacing:.01em;margin:0}
@@ -260,6 +261,33 @@ details.help p{margin:4px 0 0}
 .nowplaying .np-txt small{display:block;font:500 11px/1.2 var(--f-body);opacity:.65;text-transform:uppercase;letter-spacing:.08em}
 .nowplaying button{flex:none;min-height:44px;border-radius:12px;border:0;background:#fff;color:#111;font:700 14px/1 var(--f-body);padding:0 16px;cursor:pointer}
 @media (min-width:1024px){.nowplaying{bottom:20px;left:260px}}
+
+/* --- Spotify-soitinpalkki --- */
+.spotbar{position:fixed;left:0;right:0;bottom:calc(var(--nav-h) + var(--safe-b));z-index:24;display:flex;align-items:center;gap:10px;padding:8px 12px;
+  background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.06)}
+.spotbar[hidden]{display:none}
+body.has-spot .main{padding-bottom:calc(var(--nav-h) + var(--safe-b) + 96px)}
+body.has-spot .nowplaying{bottom:calc(var(--nav-h) + var(--safe-b) + 76px)}
+body.has-spot .queue-bar{bottom:calc(var(--nav-h) + var(--safe-b) + 74px)}
+.spot-art{flex:none;width:44px;height:44px;border-radius:8px;border:0;padding:0;background:#1db954;color:#fff;position:relative;overflow:hidden;cursor:pointer}
+.spot-art img{width:100%;height:100%;object-fit:cover;display:none}
+.spot-art img[src]{display:block}
+.spot-art .spot-logo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px}
+.spot-art img[src] + .spot-logo{display:none}
+.spot-meta{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.2;cursor:pointer}
+.spot-meta b{font:700 14px/1.2 var(--f-head);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spot-meta small{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spot-ctrl{display:flex;gap:4px;flex:none}
+.spot-ctrl button{width:44px;height:44px;border-radius:50%;border:0;background:var(--surface-2);color:var(--ink);font-size:18px;cursor:pointer}
+.spot-ctrl #spotPlay{background:var(--accent);color:var(--accent-ink)}
+.spotpanel{position:fixed;left:12px;right:12px;bottom:calc(var(--nav-h) + var(--safe-b) + 74px);z-index:45;max-width:480px;margin:0 auto;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.spotpanel[hidden]{display:none}
+@media (min-width:1024px){
+  .spotbar{left:256px;bottom:0;border-radius:16px 16px 0 0;max-width:760px;margin:0 auto}
+  body.has-spot .nowplaying{bottom:84px}
+  body.has-spot .queue-bar{bottom:84px}
+  .spotpanel{bottom:84px;left:auto;right:24px}
+}
 
 .spin{display:inline-block;width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--ink);border-radius:50%;animation:s 1s linear infinite;vertical-align:-3px}
 @keyframes s{to{transform:rotate(360deg)}}
@@ -510,6 +538,27 @@ details.help p{margin:4px 0 0}
   <div class="card script compact" id="evList"></div>
 </section>
 </main>
+</div>
+
+<!-- Spotify-soitinpalkki (näkyy kaikilla välilehdillä, kun Spotify on määritetty) -->
+<div class="spotbar" id="spotbar" hidden>
+  <button class="spot-art" id="spotExpand" aria-label="Spotify-asetukset"><img id="spotArt" alt=""><span class="spot-logo">♫</span></button>
+  <div class="spot-meta" id="spotMeta"><b id="spotTitle">Spotify</b><small id="spotSub">Ei yhdistetty</small></div>
+  <div class="spot-ctrl" id="spotCtrl" hidden>
+    <button data-sp="prev" aria-label="Edellinen">⏮</button>
+    <button data-sp="toggle" aria-label="Toista / tauko" id="spotPlay">⏯</button>
+    <button data-sp="next" aria-label="Seuraava">⏭</button>
+  </div>
+  <button class="b s p" id="spotLogin" hidden>Yhdistä Spotify</button>
+</div>
+<div class="spotpanel card" id="spotPanel" hidden>
+  <div class="card-head"><h2>Musiikki (Spotify)</h2><button class="b s ghost" id="spotClose" aria-label="Sulje">✕</button></div>
+  <label class="field">Äänenvoimakkuus<input type="range" id="spotVol" min="0" max="100" step="5" style="width:100%"></label>
+  <label class="field" style="margin-top:10px">Soittava laite<select id="spotDevice"></select></label>
+  <label class="toggle" style="margin-top:6px"><input type="checkbox" id="spotDuck"><span class="tl">Hiljennä musiikki kuulutuksen ajaksi<small>palaa automaattisesti kuulutuksen jälkeen</small></span></label>
+  <label class="field">Hiljennetty taso<input type="range" id="spotDuckLevel" min="0" max="60" step="5" style="width:100%"></label>
+  <p class="small muted" id="spotInfo" style="margin:8px 0 0"></p>
+  <div class="row" style="margin-top:8px"><button class="b s ghost danger" id="spotLogout">Katkaise Spotify-yhteys</button></div>
 </div>
 
 <div class="nowplaying" id="nowPlaying" hidden role="status" aria-live="polite">
@@ -966,6 +1015,7 @@ async function initTts(){
   try {
     const s = await api("/api/status");
     TTS = !!s.tts; ENGINE = s.engine || ""; $("#logoutRow").hidden = !s.auth;
+    spotInit(s.spotifyClientId);
     if (TTS) AZ_VOICES = await api("/api/voices");
   } catch {}
   renderVoices();
@@ -1037,6 +1087,7 @@ function ttsError(msg){ const h = `<span class="err">${esc(msg)}</span>`; $("#vo
 async function speakSeq(blocks, markFn){
   stopAll();
   const token = ++playToken; playing = true;
+  await spotDuck(true);   // musiikki hiljaiseksi kuulutuksen ajaksi
   try {
     for (let n = 0; n < blocks.length; n++) {
       if (token !== playToken) return;
@@ -1051,7 +1102,7 @@ async function speakSeq(blocks, markFn){
       if (n < blocks.length-1) await sleep(500);
     }
   } catch (e) { ttsError(e.message); }
-  if (token === playToken) { playing = false; markFn(-1); nowPlaying(null); drainQueue(); }
+  if (token === playToken) { playing = false; markFn(-1); nowPlaying(null); spotDuck(false); drainQueue(); }
 }
 function nowPlaying(b){
   const el = $("#nowPlaying");
@@ -1080,7 +1131,7 @@ function speakBrowser(b, token){
     synth.speak(u);
   })), Promise.resolve());
 }
-function stopAll(){ playToken++; playing = false; player1.pause(); if (synth) synth.cancel(); mark(-1); markEv(null); nowPlaying(null); }
+function stopAll(){ playToken++; playing = false; player1.pause(); if (synth) synth.cancel(); mark(-1); markEv(null); nowPlaying(null); if (typeof spotDuck === "function") spotDuck(false); }
 function mark(i){ document.querySelectorAll("#script .blk").forEach(b => b.classList.toggle("cur", +b.dataset.b === i)); if (i >= 0) document.querySelector(`#script .blk[data-b="${i}"]`)?.scrollIntoView({block:"center", behavior:"smooth"}); }
 function speak(idxs){ speakSeq(idxs.map(i => BLOCKS[i]), n => mark(n < 0 ? -1 : idxs[n])); }
 $("#script").onclick = e => { const b = e.target.closest("[data-say]"); if (b) speak([+b.dataset.say]); };
@@ -1519,6 +1570,140 @@ $("#savesPeriod").onchange = e => { e.target.dataset.touched = "1"; };
 document.querySelectorAll("[data-evt]").forEach(c => c.onchange = () => { S.ev.types[c.dataset.evt] = c.checked; save(); renderEvents(); });
 $("#evLangSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; stopAll(); S.lang = b.dataset.lang; save(); renderEvents(); renderVoices(); };
 setFollow(S.ev.follow);
+
+// ---------------------------------------------------------------- Spotify (musiikin ohjaus)
+// Ohjaa käyttäjän omaa Spotify-sovellusta (Spotify Connect). Kirjautuminen selaimessa PKCE:llä,
+// ei salaista avainta. Vaatii Spotify Premiumin. Tokenit tallennetaan vain tähän selaimeen.
+const SPOT_KEY = "kuulutus.spotify", SPOT_PKCE = "kuulutus.spotify.pkce";
+const SPOT_SCOPES = "user-read-playback-state user-modify-playback-state user-read-currently-playing";
+const SPOT = {clientId: "", tok: null, state: null, timer: null, ducked: null, unduckTimer: null};
+S.spot ||= {duck: true, duckLevel: 20};
+const spotRedirect = () => location.origin + "/";
+const spotLoad = () => { try { return JSON.parse(localStorage.getItem(SPOT_KEY)); } catch { return null; } };
+const spotSave = t => { SPOT.tok = t; try { t ? localStorage.setItem(SPOT_KEY, JSON.stringify(t)) : localStorage.removeItem(SPOT_KEY); } catch {} };
+const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+function spotInfo(h){ $("#spotInfo").innerHTML = h; }
+
+async function spotLogin(){
+  const rnd = crypto.getRandomValues(new Uint8Array(48));
+  const verifier = b64url(rnd), state = b64url(crypto.getRandomValues(new Uint8Array(12)));
+  const challenge = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
+  try { localStorage.setItem(SPOT_PKCE, JSON.stringify({verifier, state})); } catch {}
+  const q = new URLSearchParams({client_id: SPOT.clientId, response_type: "code", redirect_uri: spotRedirect(),
+    code_challenge_method: "S256", code_challenge: challenge, scope: SPOT_SCOPES, state});
+  location.href = "https://accounts.spotify.com/authorize?" + q;
+}
+async function spotTokenRequest(params){
+  const r = await fetch("https://accounts.spotify.com/api/token", {method: "POST",
+    headers: {"Content-Type": "application/x-www-form-urlencoded"}, body: new URLSearchParams({client_id: SPOT.clientId, ...params})});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error_description || j.error || "Spotify-kirjautuminen epäonnistui");
+  return {access: j.access_token, refresh: j.refresh_token || SPOT.tok?.refresh, exp: Date.now() + (j.expires_in || 3600) * 1000};
+}
+async function spotHandleCallback(){
+  const q = new URLSearchParams(location.search);
+  if (!q.has("code") && !q.has("error")) return;
+  let p = null; try { p = JSON.parse(localStorage.getItem(SPOT_PKCE)); } catch {}
+  history.replaceState(null, "", location.pathname);   // koodi pois osoiteriviltä
+  try { localStorage.removeItem(SPOT_PKCE); } catch {}
+  if (q.get("error")) { spotInfo(`<span class="err">Spotify: ${esc(q.get("error"))}</span>`); return; }
+  if (!p || p.state !== q.get("state")) { spotInfo('<span class="err">Spotify-kirjautuminen keskeytyi (tila ei täsmää). Yritä uudelleen.</span>'); return; }
+  try { spotSave(await spotTokenRequest({grant_type: "authorization_code", code: q.get("code"), redirect_uri: spotRedirect(), code_verifier: p.verifier})); }
+  catch (e) { spotInfo(`<span class="err">${esc(e.message)}</span>`); }
+}
+async function spotAccess(){
+  if (!SPOT.tok) return null;
+  if (Date.now() > SPOT.tok.exp - 60000) {
+    try { spotSave(await spotTokenRequest({grant_type: "refresh_token", refresh_token: SPOT.tok.refresh})); }
+    catch { spotSave(null); renderSpot(); return null; }   // vanhentunut (6 kk) → kirjaudu uudelleen
+  }
+  return SPOT.tok.access;
+}
+async function spotApi(method, path, body){
+  const tok = await spotAccess(); if (!tok) throw new Error("Spotify ei ole yhdistetty.");
+  const r = await fetch("https://api.spotify.com/v1" + path, {method, headers: {Authorization: "Bearer " + tok, ...(body ? {"Content-Type": "application/json"} : {})}, body: body ? JSON.stringify(body) : undefined});
+  if (r.status === 204 || r.status === 202) return null;
+  const j = await r.json().catch(() => null);
+  if (r.ok) return j;
+  const reason = j?.error?.reason || "", msg = j?.error?.message || "";
+  if (r.status === 401) { SPOT.tok.exp = 0; throw new Error("Spotify-istunto vanheni, yritä uudelleen."); }
+  if (r.status === 404 || reason === "NO_ACTIVE_DEVICE") throw new Error("Ei aktiivista laitetta: avaa Spotify laitteellasi ja aloita soitto, tai valitse laite.");
+  if (r.status === 403) throw new Error(reason === "PREMIUM_REQUIRED" ? "Spotify Premium tarvitaan ohjaukseen." : `Spotify esti toiminnon (${msg || "403"}). Onko tili lisätty sovelluksen käyttäjiin?`);
+  if (r.status === 429) throw new Error("Spotify: liikaa pyyntöjä, hetki.");
+  throw new Error(`Spotify ${r.status}: ${msg}`);
+}
+async function spotPoll(){
+  if (!SPOT.tok) return;
+  try { SPOT.state = await spotApi("GET", "/me/player?additional_types=episode"); renderSpot(); }
+  catch (e) { spotInfo(`<span class="err">${esc(e.message)}</span>`); }
+}
+function renderSpot(){
+  const bar = $("#spotbar");
+  bar.hidden = !SPOT.clientId; document.body.classList.toggle("has-spot", !!SPOT.clientId);
+  if (!SPOT.clientId) return;
+  const on = !!SPOT.tok, st = SPOT.state;
+  $("#spotLogin").hidden = on; $("#spotCtrl").hidden = !on;
+  const item = st?.item;
+  $("#spotTitle").textContent = on ? (item?.name || "Ei toistoa") : "Spotify";
+  $("#spotSub").textContent = on ? ([item?.artists?.map(a => a.name).join(", "), st?.device?.name].filter(Boolean).join(" · ") || "Avaa Spotify laitteellasi") : "Ohjaa musiikkia tältä sivulta";
+  const art = item?.album?.images?.slice(-1)[0]?.url;
+  if (art) $("#spotArt").src = art; else $("#spotArt").removeAttribute("src");
+  $("#spotPlay").textContent = st?.is_playing ? "⏸" : "▶";
+  if (st?.device && SPOT.ducked == null) $("#spotVol").value = st.device.volume_percent ?? 50;
+  $("#spotDuck").checked = !!S.spot.duck; $("#spotDuckLevel").value = S.spot.duckLevel;
+}
+async function spotDevices(){
+  try {
+    const d = await spotApi("GET", "/me/player/devices");
+    const cur = SPOT.state?.device?.id;
+    $("#spotDevice").innerHTML = (d.devices || []).map(x => `<option value="${esc(x.id)}"${x.id === cur ? " selected" : ""}>${esc(x.name)} (${esc(x.type)})${x.is_active ? " – aktiivinen" : ""}</option>`).join("") || '<option value="">Ei laitteita – avaa Spotify</option>';
+  } catch (e) { spotInfo(`<span class="err">${esc(e.message)}</span>`); }
+}
+async function spotCmd(fn){ try { await fn(); setTimeout(spotPoll, 400); spotInfo(""); } catch (e) { spotInfo(`<span class="err">${esc(e.message)}</span>`); $("#spotPanel").hidden = false; } }
+// Musiikin hiljennys kuulutuksen ajaksi: äänenvoimakkuus alas (tai tauko, jos laite ei salli säätöä)
+async function spotDuck(on){
+  if (!SPOT.tok || !S.spot.duck) return;
+  if (on) {
+    clearTimeout(SPOT.unduckTimer);
+    if (SPOT.ducked) return;
+    const st = SPOT.state; if (!st?.is_playing) return;
+    try {
+      if (st.device?.supports_volume !== false && st.device?.volume_percent != null) {
+        SPOT.ducked = {vol: st.device.volume_percent};
+        await spotApi("PUT", `/me/player/volume?volume_percent=${Math.min(S.spot.duckLevel, st.device.volume_percent)}`);
+      } else { SPOT.ducked = {paused: true}; await spotApi("PUT", "/me/player/pause"); }
+    } catch (e) { SPOT.ducked = null; spotInfo(`<span class="err">${esc(e.message)}</span>`); }
+  } else {
+    clearTimeout(SPOT.unduckTimer);
+    SPOT.unduckTimer = setTimeout(async () => {   // pieni viive: jonon peräkkäiset kuulutukset eivät nosta musiikkia välissä
+      const d = SPOT.ducked; SPOT.ducked = null; if (!d) return;
+      try { if (d.vol != null) await spotApi("PUT", `/me/player/volume?volume_percent=${d.vol}`); else if (d.paused) await spotApi("PUT", "/me/player/play"); }
+      catch (e) { spotInfo(`<span class="err">${esc(e.message)}</span>`); }
+      setTimeout(spotPoll, 500);
+    }, 900);
+  }
+}
+$("#spotLogin").onclick = spotLogin;
+$("#spotLogout").onclick = () => { spotSave(null); SPOT.state = null; $("#spotPanel").hidden = true; renderSpot(); };
+$("#spotExpand").onclick = $("#spotMeta").onclick = () => { if (!SPOT.tok) return spotLogin(); const p = $("#spotPanel"); p.hidden = !p.hidden; if (!p.hidden) spotDevices(); };
+$("#spotClose").onclick = () => { $("#spotPanel").hidden = true; };
+$("#spotCtrl").onclick = e => {
+  const b = e.target.closest("[data-sp]"); if (!b) return;
+  const a = b.dataset.sp;
+  if (a === "toggle") spotCmd(() => spotApi("PUT", SPOT.state?.is_playing ? "/me/player/pause" : "/me/player/play"));
+  if (a === "next") spotCmd(() => spotApi("POST", "/me/player/next"));
+  if (a === "prev") spotCmd(() => spotApi("POST", "/me/player/previous"));
+};
+$("#spotVol").onchange = e => spotCmd(() => spotApi("PUT", `/me/player/volume?volume_percent=${e.target.value}`));
+$("#spotDevice").onchange = e => e.target.value && spotCmd(() => spotApi("PUT", "/me/player", {device_ids: [e.target.value], play: !!SPOT.state?.is_playing}));
+$("#spotDuck").onchange = e => { S.spot.duck = e.target.checked; save(); };
+$("#spotDuckLevel").onchange = e => { S.spot.duckLevel = +e.target.value; save(); };
+async function spotInit(clientId){
+  SPOT.clientId = clientId || ""; SPOT.tok = spotLoad();
+  if (SPOT.clientId) await spotHandleCallback();
+  renderSpot();
+  if (SPOT.tok) { spotPoll(); clearInterval(SPOT.timer); SPOT.timer = setInterval(() => { if (!document.hidden) spotPoll(); }, 5000); }
+}
 
 // ---------------------------------------------------------------- init
 renderHeader();

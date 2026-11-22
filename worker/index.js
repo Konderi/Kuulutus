@@ -449,7 +449,7 @@ export default {
         if (url.pathname === "/api/events") return json(await gameEvents(+q.get("gameid"), +q.get("season") || await currentSeason()));
         if (url.pathname === "/api/status") {
           const azure = !!(env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION), el = !!env.ELEVENLABS_API_KEY;
-          return json({ tts: azure || el, engine: el ? "elevenlabs" : azure ? "azure" : "", auth: true });
+          return json({ tts: azure || el, engine: el ? "elevenlabs" : azure ? "azure" : "", auth: true, spotifyClientId: env.SPOTIFY_CLIENT_ID || "" });
         }
         if (url.pathname === "/api/voices") {
           const azure = !!env.AZURE_SPEECH_KEY;

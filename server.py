@@ -636,7 +636,7 @@ class Handler(BaseHTTPRequestHandler):
             if u.path == "/api/events":
                 return self._send(200, game_events(int(q["gameid"]), int(q.get("season") or current_season())))
             if u.path == "/api/status":
-                return self._send(200, {"tts": bool(azure_conf() or el_key() or piper_available()), "engine": "elevenlabs" if el_key() else "azure" if azure_conf() else ("piper" if piper_available() else "")})
+                return self._send(200, {"tts": bool(azure_conf() or el_key() or piper_available()), "engine": "elevenlabs" if el_key() else "azure" if azure_conf() else ("piper" if piper_available() else ""), "spotifyClientId": os.environ.get("SPOTIFY_CLIENT_ID", "").strip()})
             if u.path == "/api/voices":
                 return self._send(200, tts_voices())
             return self._send(404, {"error": "Ei löydy"})
