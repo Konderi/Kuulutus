@@ -527,6 +527,10 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if u.path in ("/", "/index.html"):
                 return self._send(200, (STATIC / "index.html").read_bytes(), "text/html; charset=utf-8")
+            types = {".png": "image/png", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".webmanifest": "application/manifest+json"}
+            name = u.path.lstrip("/")
+            if "/" not in name and Path(name).suffix in types and (STATIC / name).is_file():
+                return self._send(200, (STATIC / name).read_bytes(), types[Path(name).suffix])
             if u.path == "/api/games":
                 return self._send(200, games_of_day(q.get("date") or time.strftime("%Y-%m-%d")))
             if u.path == "/api/rosters":
