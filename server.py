@@ -217,7 +217,8 @@ def game_events(gameid, season):
 VOICES = {
     "fi": [
         {"name": "fi-FI-NooraNeural", "label": "Noora (nainen) – suositus"},
-        {"name": "fi-FI-HarriNeural", "label": "Harri (mies)"},
+        {"name": "fi-FI-Grant:MAI-Voice-2.1", "label": "Grant (mies, uusi – kokeellinen)"},
+        {"name": "fi-FI-Harper:MAI-Voice-2.1", "label": "Harper (nainen, uusi – kokeellinen)"},
     ],
     "en": [
         {"name": "en-US-AvaMultilingualNeural", "label": "Ava – nimet: Noora"},
@@ -239,6 +240,11 @@ def xml_esc(s):
 
 # Englanninkielisessä kuulutuksessa nimet luetaan aina suomalaisella lukijalla
 FI_READER = {"en-US-AndrewMultilingualNeural": "fi-FI-HarriNeural", "en-US-AvaMultilingualNeural": "fi-FI-NooraNeural"}
+# Klassiset suomiäänet tarvitsevat ääntämiskorjaukset; uudet MAI-äänet lausuvat ne oikein itse
+FI_CLASSIC = {"fi-FI-NooraNeural", "fi-FI-HarriNeural", "fi-FI-SelmaNeural"}
+# Kuuluttajatyyli: rauhallisempi tempo, hieman korkeampi ja voimakkaampi ääni, pidemmät tauot
+ANNOUNCER = {"rate": 0.9, "pitch": "+6%", "volume": "+10%", "pause": 1.8}
+VOICE_STYLE = {"fi-FI-Harper:MAI-Voice-2.1": "narrator"}  # mstts:express-as kuuluttajatyylissä
 
 
 # Azuren suomiäänet kompastelevat tiettyihin sanoihin (mitattu puheentunnistuksella):
@@ -256,29 +262,33 @@ FI_LETTERS = {"A": "aa", "B": "bee", "C": "see", "D": "dee", "E": "ee", "F": "ä
               "Å": "oo", "Ä": "ää", "Ö": "öö"}
 
 
-def fi_normalize(text):
+def fi_normalize(text, classic=True):
     # peliaika "51.31" luetaan muuten "51 piste 31" (yli 23 min ei ole kellonaika) → "51 31"
     text = re.sub(r"(?<![\d.:])(\d{1,2})[.:](\d{2})(?![\d:]|\.\d)", r"\1 \2", text)
-    text = re.sub(r"(?<![\d.:])([2-9])1(?![\d:]|\.\d)", lambda m: f"{FI_TENS[m.group(1)]} yksi", text)
+    if classic:
+        text = re.sub(r"(?<![\d.:])([2-9])1(?![\d:]|\.\d)", lambda m: f"{FI_TENS[m.group(1)]} yksi", text)
     # yksittäinen kirjain joukkueen nimessä ("K-Espoo V" → "…vee", ei "viidenneltä")
     text = re.sub(r"(?<![\w-])([A-ZÅÄÖ])(?![\w-]|\.\w)", lambda m: FI_LETTERS[m.group(1)], text)
-    return re.sub(r"\b([Ee])nsimmäi", lambda m: f"{m.group(1)}n-simmäi", text)
+    return re.sub(r"\b([Ee])nsimmäi", lambda m: f"{m.group(1)}n-simmäi", text) if classic else text
 
 
-def build_ssml(lang, voice, rate, segs):
+def build_ssml(lang, voice, rate, segs, style="neutral"):
     """segs: [{"t": teksti, "fi": bool (nimi → suomalainen lukija), "brk": ms}]
 
     Saman lukijan peräkkäinen teksti yhdistetään yhtenäisiksi lauseiksi: jos lause pilkotaan
     useaan elementtiin, neuroääni katkoo rytmin ja ääntää sanoja ja lukuja väärin
     (esim. "ensimmäinen" → "ensin i nen", "21" → "20 x")."""
     locale = "fi-FI" if lang == "fi" else "en-US"
-    fi_voice = voice if lang == "fi" else FI_READER.get(voice, "fi-FI-HarriNeural")
-    r = int(round((float(rate) - 1) * 100))
+    fi_voice = voice if lang == "fi" else FI_READER.get(voice, "fi-FI-NooraNeural")
+    ann = style == "announcer"
+    rate = float(rate) * (ANNOUNCER["rate"] if ann else 1)
+    r = int(round((rate - 1) * 100))
+    pause = ANNOUNCER["pause"] if ann else 1
     runs = []  # [(ääni, [osat])], osa = tekstiä tai ("brk", ms)
     for s in segs:
         if s.get("brk"):
             if runs:
-                runs[-1][1].append(("brk", int(s["brk"])))
+                runs[-1][1].append(("brk", int(int(s["brk"]) * pause)))
             continue
         text = s.get("t", "")
         if not text.strip() and not (runs and text):
@@ -295,18 +305,27 @@ def build_ssml(lang, voice, rate, segs):
 
     def chunk(text, v):
         text = " ".join(text.split())
-        t = xml_esc(fi_normalize(text) if v.startswith("fi-FI") else text)
-        return f'<prosody rate="{r:+d}%">{t}</prosody>' if r else t
+        if v.startswith("fi-FI"):
+            text = fi_normalize(text, v in FI_CLASSIC)
+        else:  # englanniksi "51:31" luetaan "fifty-one colon thirty-one" → "51 31"
+            text = re.sub(r"(?<![\d.:])(\d{1,2}):(\d{2})(?![\d:])", r"\1 \2", text)
+        if "MAI-Voice" in v:  # uudet äänet lukevat numeron perässä olevan pisteen ääneen ("31 piste")
+            text = re.sub(r"(\d)\.(?=\s|$)", r"\1", text)
+        t = xml_esc(text)
+        attrs = (f' rate="{r:+d}%"' if r else "") + (f' pitch="{ANNOUNCER["pitch"]}" volume="{ANNOUNCER["volume"]}"' if ann else "")
+        return f'<prosody{attrs}>{t}</prosody>' if attrs else t
 
     body = []
     for v, parts in runs:
         inner = "".join(f'<break time="{p[1]}ms"/>' if isinstance(p, tuple) else chunk(p, v) for p in parts if isinstance(p, tuple) or p.strip())
+        if ann and v in VOICE_STYLE:
+            inner = f'<mstts:express-as style="{VOICE_STYLE[v]}">{inner}</mstts:express-as>'
         body.append(f'<voice name="{xml_esc(v)}">{inner}</voice>')
     return (f'<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" '
             f'xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="{locale}">{"".join(body)}</speak>')
 
 
-def azure_tts(lang, voice, rate, segs):
+def azure_tts(lang, voice, rate, segs, style="neutral"):
     conf = azure_conf()
     if not conf:
         raise RuntimeError("Azure Speech ei ole käytössä: aseta AZURE_SPEECH_KEY ja AZURE_SPEECH_REGION.")
@@ -315,7 +334,8 @@ def azure_tts(lang, voice, rate, segs):
     if voice not in allowed:
         raise RuntimeError(f"Tuntematon ääni: {voice}")
     rate = min(1.5, max(0.6, float(rate or 1)))
-    ssml = build_ssml(lang, voice, rate, segs)
+    style = "announcer" if style == "announcer" else "neutral"
+    ssml = build_ssml(lang, voice, rate, segs, style)
     key_hash = __import__("hashlib").sha256(ssml.encode("utf-8")).hexdigest()
     path = TTS_CACHE / f"{key_hash}.mp3"
     if path.exists():
@@ -382,7 +402,7 @@ def piper_text(text, finnish):
     return text
 
 
-def piper_tts(lang, voice, rate, segs):
+def piper_tts(lang, voice, rate, segs, style="neutral"):
     import io, wave
     from piper import SynthesisConfig
     if not piper_available():
@@ -391,8 +411,10 @@ def piper_tts(lang, voice, rate, segs):
     allowed = {v["name"] for vs in PIPER_VOICES.values() for v in vs}
     if voice not in allowed or not (VOICE_DIR / f"{main}.onnx").exists():
         raise RuntimeError(f"Tuntematon ääni: {voice}")
-    rate = min(1.5, max(0.6, float(rate or 1)))
-    key = hashlib.sha256(json.dumps([lang, voice, rate, segs], ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    ann = style == "announcer"
+    rate = min(1.5, max(0.6, float(rate or 1))) * (ANNOUNCER["rate"] if ann else 1)
+    pause = ANNOUNCER["pause"] if ann else 1
+    key = hashlib.sha256(json.dumps([lang, voice, rate, style, segs], ensure_ascii=False, sort_keys=True).encode()).hexdigest()
     path = TTS_CACHE / f"piper-{key}.wav"
     if path.exists():
         return path.read_bytes()
@@ -401,7 +423,7 @@ def piper_tts(lang, voice, rate, segs):
     # Englanniksi nimet (fi) luetaan suomenkielisellä äänellä, jotta ne ääntyvät oikein
     for s in segs:
         if s.get("brk"):
-            frames.append(("silence", int(s["brk"])))
+            frames.append(("silence", int(int(s["brk"]) * pause)))
             continue
         text = (s.get("t") or "").strip()
         if not re.search(r"\w", text):
@@ -490,8 +512,8 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send(413, {"error": "Liian pitkä teksti."})
                 p = json.loads(self.rfile.read(n))
                 if str(p.get("voice", "")).startswith("piper:"):
-                    return self._send(200, piper_tts(p.get("lang", "fi"), p["voice"], p.get("rate", 1), p["segs"]), "audio/wav")
-                audio = azure_tts(p.get("lang", "fi"), p["voice"], p.get("rate", 1), p["segs"])
+                    return self._send(200, piper_tts(p.get("lang", "fi"), p["voice"], p.get("rate", 1), p["segs"], p.get("style", "neutral")), "audio/wav")
+                audio = azure_tts(p.get("lang", "fi"), p["voice"], p.get("rate", 1), p["segs"], p.get("style", "neutral"))
                 return self._send(200, audio, "audio/mpeg")
             except RuntimeError as e:
                 return self._send(400, {"error": str(e)})

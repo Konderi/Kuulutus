@@ -137,6 +137,9 @@ button.b:disabled{opacity:.45;cursor:default;transform:none}
 .seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 @media (prefers-color-scheme: dark){.seg button.on{background:#2b3138}}
 
+.style-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;flex-wrap:wrap}
+.style-lbl{font:700 12px/1 var(--f-head);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
 /* --- otteluhaku --- */
 .search-bar{display:grid;grid-template-columns:auto 1fr;gap:10px}
 .search-bar input[type=search]{width:100%}
@@ -358,6 +361,10 @@ details.help p{margin:4px 0 0}
     <div class="seg" id="annSeg" style="width:100%;display:flex">
       <button data-side="away" class="on" style="flex:1">Vieras</button><button data-side="home" style="flex:1">Koti</button><button data-side="both" style="flex:1">Molemmat</button>
     </div>
+    <div class="style-row">
+      <span class="style-lbl">Lukutyyli</span>
+      <div class="seg style-seg" data-style-seg><button data-style="announcer">🎙 Kuuluttaja</button><button data-style="neutral">Neutraali</button></div>
+    </div>
     <div class="btn-row full" style="margin-top:14px">
       <button class="b p xl" id="btnSpeakAll">▶ Lue kaikki</button>
       <button class="b xl" id="btnStop">■ Pysäytä</button>
@@ -395,6 +402,10 @@ details.help p{margin:4px 0 0}
   </div>
   <div class="card">
     <div id="evScore"></div>
+    <div class="style-row" style="margin:0 0 6px">
+      <span class="style-lbl">Lukutyyli</span>
+      <div class="seg style-seg" data-style-seg><button data-style="announcer">🎙 Kuuluttaja</button><button data-style="neutral">Neutraali</button></div>
+    </div>
     <div class="toggles">
       <label class="toggle"><input type="checkbox" id="evFollow"><span class="tl"><b>Seuraa ottelua</b><small>päivitys 5 s välein</small></span></label>
       <label class="toggle"><input type="checkbox" id="evAuto"><span class="tl"><b>Automaattinen kuulutus</b><small>kun peli jatkuu</small></span></label>
@@ -454,7 +465,8 @@ function newLine(){ return {d:["",""], f:["","",""]}; }
 
 let S = load() || {game:null, teams:{home:emptyTeam(""), away:emptyTeam("")}, side:"away", ann:"away", opts:{coach:false, extra:true, first:true}, rate:0.9, voice:""};
 S.lang ||= "fi"; S.voices ||= {fi:"", en:""}; S.rate = S.rate || 0.95;
-if (S.voiceMig !== 2) { S.voices = {fi:"", en:""}; S.voiceMig = 2; }   // oletusääni Noora (mitattu luotettavimmaksi)
+if (S.voiceMig !== 2) { S.voices = {fi:"", en:""}; S.voiceMig = 2; }
+S.style ||= "announcer";   // oletusääni Noora (mitattu luotettavimmaksi)
 S.ev ||= {gameId:null, follow:false, auto:false, types:{Goal:true, Penalty:true, Timeout:true, GK:true}, seen:{}, read:{}};
 S.ev.types.PX ??= true; S.opts.welcome ??= true; S.opts.refs ??= true; if (S.opts.coachDefault !== 1) { S.opts.coach = true; S.opts.coachDefault = 1; }
 if (!["home","away","both"].includes(S.ann)) S.ann = "away";
@@ -841,6 +853,7 @@ let BLOCKS = [];
 function renderScript(){
   document.querySelectorAll("#annSeg button").forEach(b => b.classList.toggle("on", b.dataset.side === S.ann));
   document.querySelectorAll("#langSeg button").forEach(b => b.classList.toggle("on", b.dataset.lang === S.lang));
+  renderStyle();
   ["welcome","coach","refs","first","extra","fwd"].forEach(k => $("#opt" + k[0].toUpperCase() + k.slice(1)).checked = !!S.opts[k]);
   const anyLines = ["home","away"].some(s => S.teams[s].lines.some(L => [...L.d,...L.f].some(Boolean)));
   document.querySelectorAll(".lineopt").forEach(el => el.style.display = anyLines ? "" : "none");
@@ -859,6 +872,13 @@ $("#langSeg").onclick = e => { const b = e.target.closest("button"); if (!b) ret
 ["Welcome","Coach","Refs","First","Extra","Fwd"].forEach(k => $("#opt"+k).onchange = e => { S.opts[k.toLowerCase()] = e.target.checked; save(); renderScript(); });
 $("#hall").onchange = e => { S.hall = e.target.value.trim(); save(); renderScript(); };
 $("#rate").onchange = e => { S.rate = +e.target.value; save(); };
+
+// ---- lukutyyli (Kuuluttaja / Neutraali), sama valinta molemmilla välilehdillä
+function renderStyle(){ document.querySelectorAll("[data-style-seg] button").forEach(b => b.classList.toggle("on", b.dataset.style === S.style)); }
+document.querySelectorAll("[data-style-seg]").forEach(seg => seg.onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  stopAll(); S.style = b.dataset.style; save(); renderStyle();
+});
 
 // ---- ääni: Azure Speech palvelimen kautta, varalla selaimen puhesynteesi
 let TTS = false, ENGINE = "", AZ_VOICES = {fi:[], en:[]};
@@ -910,7 +930,7 @@ function renderVoices(){
 if (synth) synth.onvoiceschanged = () => { if (!TTS) renderVoices(); };
 $("#voice").onchange = e => { S.voices[S.lang] = e.target.value; save(); };
 
-function ttsReq(b){ return {lang: S.lang, voice: curVoice(), rate: S.rate, segs: b.segs}; }
+function ttsReq(b){ return {lang: S.lang, voice: curVoice(), rate: S.rate, style: S.style, segs: b.segs}; }
 function getAudio(b){
   const req = ttsReq(b), key = JSON.stringify(req);
   if (!audioCache.has(key)) {
@@ -978,7 +998,7 @@ function speakBrowser(b, token){
     if (token !== playToken) return res();
     const v = r.fi ? fiV : main;
     const u = new SpeechSynthesisUtterance(r.t.replace(/\s+/g, " "));
-    u.lang = v?.lang || (r.fi ? "fi-FI" : "en-US"); if (v) u.voice = v; u.rate = S.rate;
+    u.lang = v?.lang || (r.fi ? "fi-FI" : "en-US"); if (v) u.voice = v; u.rate = S.rate * (S.style === "announcer" ? 0.9 : 1); u.pitch = S.style === "announcer" ? 1.08 : 1;
     u.onend = u.onerror = () => res();
     synth.speak(u);
   })), Promise.resolve());
@@ -1233,6 +1253,7 @@ async function fetchEvents(){
 }
 function renderEvents(){
   document.querySelectorAll("#evLangSeg button").forEach(b => b.classList.toggle("on", b.dataset.lang === S.lang));
+  renderStyle();
   $("#evFollow").checked = S.ev.follow; $("#evAuto").checked = S.ev.auto;
   document.querySelectorAll("[data-evt]").forEach(c => c.checked = !!S.ev.types[c.dataset.evt]);
   $("#btnEvNext").textContent = evQueue.length ? `▶ Kuuluta jono (${evQueue.length})` : "Jono tyhjä";

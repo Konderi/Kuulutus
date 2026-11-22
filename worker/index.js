@@ -14,7 +14,8 @@ const UA = "Kuulutus/1.0 (+announcer tool)";
 const VOICES = {
   fi: [
     { name: "fi-FI-NooraNeural", label: "Noora (nainen) – suositus" },
-    { name: "fi-FI-HarriNeural", label: "Harri (mies)" },
+    { name: "fi-FI-Grant:MAI-Voice-2.1", label: "Grant (mies, uusi – kokeellinen)" },
+    { name: "fi-FI-Harper:MAI-Voice-2.1", label: "Harper (nainen, uusi – kokeellinen)" },
   ],
   en: [
     { name: "en-US-AvaMultilingualNeural", label: "Ava – nimet: Noora" },
@@ -23,6 +24,11 @@ const VOICES = {
 };
 // Englanninkielisessä kuulutuksessa nimet luetaan aina suomalaisella lukijalla
 const FI_READER = { "en-US-AndrewMultilingualNeural": "fi-FI-HarriNeural", "en-US-AvaMultilingualNeural": "fi-FI-NooraNeural" };
+// Klassiset suomiäänet tarvitsevat ääntämiskorjaukset; uudet MAI-äänet lausuvat ne oikein itse
+const FI_CLASSIC = new Set(["fi-FI-NooraNeural", "fi-FI-HarriNeural", "fi-FI-SelmaNeural"]);
+// Kuuluttajatyyli: rauhallisempi tempo, hieman korkeampi ja voimakkaampi ääni, pidemmät tauot
+const ANNOUNCER = { rate: 0.9, pitch: "+6%", volume: "+10%", pause: 1.8 };
+const VOICE_STYLE = { "fi-FI-Harper:MAI-Voice-2.1": "narrator" };
 
 class UserError extends Error {}
 
@@ -154,21 +160,24 @@ const xmlEsc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").repla
 //  - yksittäinen kirjain ("K-Espoo V" → "viidenneltä") → kirjaimen nimi ("vee")
 const FI_TENS = { 2: "kaksikymmentä", 3: "kolmekymmentä", 4: "neljäkymmentä", 5: "viisikymmentä", 6: "kuusikymmentä", 7: "seitsemänkymmentä", 8: "kahdeksankymmentä", 9: "yhdeksänkymmentä" };
 const FI_LETTERS = { A: "aa", B: "bee", C: "see", D: "dee", E: "ee", F: "äf", G: "gee", H: "hoo", I: "ii", J: "jii", K: "koo", L: "äl", M: "äm", N: "än", O: "oo", P: "pee", Q: "kuu", R: "är", S: "äs", T: "tee", U: "uu", V: "vee", W: "kaksoisvee", X: "äks", Y: "yy", Z: "tset", "Å": "oo", "Ä": "ää", "Ö": "öö" };
-function fiNormalize(text) {
+function fiNormalize(text, classic = true) {
   text = text.replace(/(?<![\d.:])(\d{1,2})[.:](\d{2})(?![\d:]|\.\d)/g, "$1 $2");
-  text = text.replace(/(?<![\d.:])([2-9])1(?![\d:]|\.\d)/g, (_, d) => `${FI_TENS[d]} yksi`);
+  if (classic) text = text.replace(/(?<![\d.:])([2-9])1(?![\d:]|\.\d)/g, (_, d) => `${FI_TENS[d]} yksi`);
   text = text.replace(/(?<![\p{L}\p{N}_-])([A-ZÅÄÖ])(?![\p{L}\p{N}_-]|\.[\p{L}\p{N}_])/gu, (_, c) => FI_LETTERS[c]);
-  return text.replace(/(^|[^\p{L}])([Ee])nsimmäi/gu, (_, pre, e) => `${pre}${e}n-simmäi`);
+  return classic ? text.replace(/(^|[^\p{L}])([Ee])nsimmäi/gu, (_, pre, e) => `${pre}${e}n-simmäi`) : text;
 }
 
 // Saman lukijan peräkkäinen teksti yhdistetään yhtenäisiksi lauseiksi (pilkottu lause katkoo rytmin)
-function buildSsml(lang, voice, rate, segs) {
+function buildSsml(lang, voice, rate, segs, style = "neutral") {
   const locale = lang === "fi" ? "fi-FI" : "en-US";
   const fiVoice = lang === "fi" ? voice : (FI_READER[voice] || "fi-FI-NooraNeural");
+  const ann = style === "announcer";
+  rate = rate * (ann ? ANNOUNCER.rate : 1);
   const r = Math.round((rate - 1) * 100);
+  const pause = ann ? ANNOUNCER.pause : 1;
   const runs = [];   // { v, parts: [teksti | { brk }] }
   for (const s of segs) {
-    if (s.brk) { if (runs.length) runs[runs.length - 1].parts.push({ brk: parseInt(s.brk, 10) || 0 }); continue; }
+    if (s.brk) { if (runs.length) runs[runs.length - 1].parts.push({ brk: Math.trunc((parseInt(s.brk, 10) || 0) * pause) }); continue; }
     const text = String(s.t || "");
     if (!text.trim() && !(runs.length && text)) continue;
     const v = s.fi ? fiVoice : voice;
@@ -180,12 +189,19 @@ function buildSsml(lang, voice, rate, segs) {
   }
   const chunk = (text, v) => {
     text = text.split(/\s+/).filter(Boolean).join(" ");
-    const t = xmlEsc(v.startsWith("fi-FI") ? fiNormalize(text) : text);
-    return r ? `<prosody rate="${r > 0 ? "+" : ""}${r}%">${t}</prosody>` : t;
+    if (v.startsWith("fi-FI")) text = fiNormalize(text, FI_CLASSIC.has(v));
+    else text = text.replace(/(?<![\d.:])(\d{1,2}):(\d{2})(?![\d:])/g, "$1 $2");   // "51:31" → "51 31" (ei "colon")
+    if (v.includes("MAI-Voice")) text = text.replace(/(\d)\.(?=\s|$)/g, "$1");     // MAI lukee pisteen ääneen
+    const t = xmlEsc(text);
+    const attrs = (r ? ` rate="${r > 0 ? "+" : ""}${r}%"` : "") + (ann ? ` pitch="${ANNOUNCER.pitch}" volume="${ANNOUNCER.volume}"` : "");
+    return attrs ? `<prosody${attrs}>${t}</prosody>` : t;
   };
-  const body = runs.map(({ v, parts }) => `<voice name="${xmlEsc(v)}">${parts
-    .filter(p => typeof p !== "string" || p.trim())
-    .map(p => typeof p === "string" ? chunk(p, v) : `<break time="${p.brk}ms"/>`).join("")}</voice>`).join("");
+  const body = runs.map(({ v, parts }) => {
+    let inner = parts.filter(p => typeof p !== "string" || p.trim())
+      .map(p => typeof p === "string" ? chunk(p, v) : `<break time="${p.brk}ms"/>`).join("");
+    if (ann && VOICE_STYLE[v]) inner = `<mstts:express-as style="${VOICE_STYLE[v]}">${inner}</mstts:express-as>`;
+    return `<voice name="${xmlEsc(v)}">${inner}</voice>`;
+  }).join("");
   return `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="${locale}">${body}</speak>`;
 }
 
@@ -194,13 +210,13 @@ async function sha256(s) {
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function azureTts(env, ctx, { lang = "fi", voice, rate = 1, segs }) {
+async function azureTts(env, ctx, { lang = "fi", voice, rate = 1, segs, style = "neutral" }) {
   if (!env.AZURE_SPEECH_KEY || !env.AZURE_SPEECH_REGION) throw new UserError("Azure Speech ei ole käytössä: aseta AZURE_SPEECH_KEY ja AZURE_SPEECH_REGION.");
   const allowed = new Set(Object.values(VOICES).flat().map(v => v.name));
   if (!allowed.has(voice)) throw new UserError(`Tuntematon ääni: ${voice}`);
   if (!Array.isArray(segs) || segs.length > 400) throw new UserError("Virheellinen teksti.");
   rate = Math.min(1.5, Math.max(0.6, Number(rate) || 1));
-  const ssml = buildSsml(lang, voice, rate, segs);
+  const ssml = buildSsml(lang, voice, rate, segs, style === "announcer" ? "announcer" : "neutral");
   if (ssml.length > 20000) throw new UserError("Liian pitkä teksti.");
 
   // Valmiit äänet välimuistiin: sama kuulutus ei kuluta Azure-kiintiötä uudelleen
