@@ -14,10 +14,12 @@
   "routes": [
     { "pattern": "kuulutus.konderi.fi", "custom_domain": true }
   ],
+  // Älä poista Cloudflare-hallinnassa lisättyjä muuttujia julkaisun yhteydessä
+  "keep_vars": true,
   "vars": {
     "AZURE_SPEECH_REGION": "swedencentral"
   },
-  // Salaisuudet (ei tähän tiedostoon): Cloudflare-hallinnasta
+  // Salaisuudet (ei tähän tiedostoon): Cloudflare-hallinnasta, tyyppi "Secret" (ei "Text")
   // Workers & Pages → kuulutus → Settings → Variables and Secrets
   //   AZURE_SPEECH_KEY   (pakollinen puheäänelle)
   //   ANTHROPIC_API_KEY  (valinnainen, pöytäkirjan kuvan lukeminen)
