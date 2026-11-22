@@ -746,11 +746,20 @@ function whoInto(b, P, team, nr, bare){
   const shown = [S.opts.first ? p.first : "", p.last].filter(Boolean).join(" ");
   if (shown || p.say) { txt(b, ", "); nameSeg(b, shown || p.say, p.say); }
 }
+// Ruudulla lista pilkuin ("2, Nuutti Vaittinen, 5, …"); puheessa jokainen pelaaja omana lauseenaan
+// tauon kanssa, jotta painotus pysyy samana koko listan ajan (yksi pitkä lause laskee sävyä loppua kohden).
+function sayOnly(b, s){ const l = b.segs[b.segs.length-1]; if (l && !l.fi && !l.brk) l.t += s; else b.segs.push({t:s}); }
 function listInto(b, P, lead, team, nrs, bare){
   if (!nrs.length) return false;
   if (b.segs.length) br(b);
-  txt(b, lead[nrs.length > 1 ? 1 : 0] + P.sep);
-  nrs.forEach((n, i) => { if (i > 0) txt(b, i === nrs.length-1 ? ` ${P.and} ` : ", "); whoInto(b, P, team, n, bare); });
+  const long = nrs.length > 1;
+  b.html += esc(lead[long ? 1 : 0] + P.sep);
+  sayOnly(b, lead[long ? 1 : 0] + (long ? "." : " "));
+  if (long) b.segs.push({brk: 250});
+  nrs.forEach((n, i) => {
+    if (i > 0) { b.html += esc(i === nrs.length-1 ? ` ${P.and} ` : ", "); sayOnly(b, "."); b.segs.push({brk: 250}); }
+    whoInto(b, P, team, n, bare);
+  });
   txt(b, ".");
   return true;
 }
@@ -931,7 +940,8 @@ function renderVoices(){
 if (synth) synth.onvoiceschanged = () => { if (!TTS) renderVoices(); };
 $("#voice").onchange = e => { S.voices[S.lang] = e.target.value; save(); renderVoices(); };
 
-function ttsReq(b){ return {lang: S.lang, voice: curVoice(), rate: S.rate, style: S.style, segs: b.segs}; }
+// mood: maalit innostuneesti, muut kuulutukset jämäkästi (ElevenLabs-tyyli)
+function ttsReq(b){ return {lang: S.lang, voice: curVoice(), rate: S.rate, style: S.style, mood: b.kind === "Goal" ? "excited" : "confident", segs: b.segs}; }
 function getAudio(b){
   const req = ttsReq(b), key = JSON.stringify(req);
   if (!audioCache.has(key)) {

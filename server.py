@@ -486,7 +486,7 @@ def el_key():
     return os.environ.get("ELEVENLABS_API_KEY", "").strip()
 
 
-def el_text(lang, segs, style):
+def el_text(lang, segs, style, mood="confident"):
     """Kuulutuksen osat yhdeksi tekstiksi. Tauot rivinvaihtoina, kuuluttajatyyli [excited]-tagilla."""
     out = []
     for s in segs:
@@ -506,10 +506,15 @@ def el_text(lang, segs, style):
         text = re.sub(r"(?<![\w-])([A-ZÅÄÖ])(?![\w-]|\.\w)", lambda m: FI_LETTERS[m.group(1)], text)
     else:
         text = re.sub(r"(?<![\d.:])(\d{1,2}):(\d{2})(?![\d:])", r"\1 \2", text)
-    return ("[excited] " if style == "announcer" else "") + text
+    # "Päävalmentaja: …" rivin alussa tulkitaan käsikirjoituksen puhujamerkinnäksi: sana jää
+    # lukematta tai se luetaan eri äänellä → kaksoispiste pois
+    text = re.sub(r"(?m)^([^\n:]{1,40}):\s*", r"\1 ", text)
+    # [excited] nostaa lyhyissä lauseissa äänen huudahtavan korkeaksi → vain maaleihin
+    tag = {"excited": "[excited] ", "confident": "[confident] "}.get(mood, "[confident] ")
+    return (tag if style == "announcer" else "") + text
 
 
-def el_tts(lang, voice, rate, segs, style="neutral"):
+def el_tts(lang, voice, rate, segs, style="neutral", mood="confident"):
     key = el_key()
     if not key:
         raise RuntimeError("ElevenLabs ei ole käytössä: aseta ELEVENLABS_API_KEY.")
@@ -517,7 +522,7 @@ def el_tts(lang, voice, rate, segs, style="neutral"):
     if voice not in allowed:
         raise RuntimeError(f"Tuntematon ääni: {voice}")
     speed = min(1.2, max(0.7, float(rate or 1)))
-    body = {"text": el_text(lang, segs, style), "model_id": EL_MODEL, "language_code": lang if lang == "fi" else "en",
+    body = {"text": el_text(lang, segs, style, mood), "model_id": EL_MODEL, "language_code": lang if lang == "fi" else "en",
             "voice_settings": {"speed": round(speed, 2)}}
     payload = json.dumps(body, ensure_ascii=False, sort_keys=True)
     path = TTS_CACHE / f"el-{hashlib.sha256((voice + payload).encode()).hexdigest()}.mp3"
@@ -545,13 +550,13 @@ class ElevenLabsError(Exception):
         self.status = status
 
 
-def tts_any(lang, voice, rate, segs, style):
+def tts_any(lang, voice, rate, segs, style, mood="confident"):
     """Palauttaa (ääni, mime, käytetty_ääni). ElevenLabsin virheessä varalle Azure (Noora)."""
     if voice.startswith("piper:"):
         return piper_tts(lang, voice, rate, segs, style), "audio/wav", voice
     if voice.startswith("el:"):
         try:
-            return el_tts(lang, voice, rate, segs, style), "audio/mpeg", voice
+            return el_tts(lang, voice, rate, segs, style, mood), "audio/mpeg", voice
         except ElevenLabsError as e:
             print("ElevenLabs-virhe, käytetään Azurea:", e, file=sys.stderr)
             if not azure_conf():
@@ -625,7 +630,7 @@ class Handler(BaseHTTPRequestHandler):
                 if n > 200_000:
                     return self._send(413, {"error": "Liian pitkä teksti."})
                 p = json.loads(self.rfile.read(n))
-                audio, mime, used = tts_any(p.get("lang", "fi"), str(p.get("voice", "")), p.get("rate", 1), p["segs"], p.get("style", "neutral"))
+                audio, mime, used = tts_any(p.get("lang", "fi"), str(p.get("voice", "")), p.get("rate", 1), p["segs"], p.get("style", "neutral"), p.get("mood", "confident"))
                 return self._send(200, audio, mime)
             except RuntimeError as e:
                 return self._send(400, {"error": str(e)})

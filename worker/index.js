@@ -261,7 +261,7 @@ const FI_VOWELS = new Set("AEIOUYÄÖ");
 class ElevenLabsError extends Error { constructor(status, detail) { super(`ElevenLabs ${status}: ${detail}`); this.status = status; } }
 
 // Kuulutuksen osat yhdeksi tekstiksi: tauot rivinvaihtoina, kuuluttajatyyli [excited]-tagilla
-function elText(lang, segs, style) {
+function elText(lang, segs, style, mood = "confident") {
   let text = segs.map(s => s.brk ? "\n" : String(s.t || "")).join("");
   text = text.split("\n").map(l => l.split(/\s+/).filter(Boolean).join(" ")).join("\n").replace(/\n+/g, "\n").trim();
   if (lang === "fi") {
@@ -272,15 +272,19 @@ function elText(lang, segs, style) {
   } else {
     text = text.replace(/(?<![\d.:])(\d{1,2}):(\d{2})(?![\d:])/g, "$1 $2");
   }
-  return (style === "announcer" ? "[excited] " : "") + text;
+  // "Päävalmentaja: …" rivin alussa tulkitaan puhujamerkinnäksi → kaksoispiste pois
+  text = text.replace(/^([^\n:]{1,40}):\s*/gm, "$1 ");
+  // [excited] nostaa lyhyissä lauseissa äänen huudahtavan korkeaksi → vain maaleihin
+  const tag = mood === "excited" ? "[excited] " : "[confident] ";
+  return (style === "announcer" ? tag : "") + text;
 }
 
-async function elTts(env, ctx, { lang = "fi", voice, rate = 1, segs, style = "neutral" }) {
+async function elTts(env, ctx, { lang = "fi", voice, rate = 1, segs, style = "neutral", mood = "confident" }) {
   if (!env.ELEVENLABS_API_KEY) throw new UserError("ElevenLabs ei ole käytössä: aseta ELEVENLABS_API_KEY.");
   if (!EL_VOICES.fi.some(v => v.name === voice)) throw new UserError(`Tuntematon ääni: ${voice}`);
   if (!Array.isArray(segs) || segs.length > 400) throw new UserError("Virheellinen teksti.");
   const speed = Math.round(Math.min(1.2, Math.max(0.7, Number(rate) || 1)) * 100) / 100;
-  const body = { language_code: lang === "fi" ? "fi" : "en", model_id: EL_MODEL, text: elText(lang, segs, style === "announcer" ? "announcer" : "neutral"), voice_settings: { speed } };
+  const body = { language_code: lang === "fi" ? "fi" : "en", model_id: EL_MODEL, text: elText(lang, segs, style === "announcer" ? "announcer" : "neutral", mood === "excited" ? "excited" : "confident"), voice_settings: { speed } };
   if (body.text.length > 5000) throw new UserError("Liian pitkä teksti.");
   const payload = JSON.stringify(body);
   const cacheKey = new Request(`https://tts-cache.kuulutus/el-${await sha256(voice + payload)}.mp3`);
