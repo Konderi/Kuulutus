@@ -4,8 +4,6 @@
 - Tarjoilee käyttöliittymän (static/index.html)
 - Välittää Leijonat-tulospalvelun (TITU) kutsut, koska rajapinta ei salli
   suoria selainkutsuja (ei CORS-otsakkeita)
-- Lukee pöytäkirjan kuvasta kokoonpanot Clauden avulla (valinnainen,
-  vaatii ANTHROPIC_API_KEY-ympäristömuuttujan ja anthropic-paketin)
 
 Käynnistys:  python3 server.py   (oletusportti 8000, muuta: PORT=8080)
 """
@@ -210,108 +208,6 @@ def game_events(gameid, season):
         "periodLen": int(rules[3]) if len(rules) > 3 and rules[3].isdigit() else 20,
         "events": events,
     }
-
-
-# ---------------------------------------------------------------- kuvan tulkinta
-
-PLAYER_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "number": {"type": "string"},
-        "first_name": {"type": "string"},
-        "last_name": {"type": "string"},
-        "position": {"type": "string", "enum": ["MV", "P", "H", "KP", ""]},
-        "captain": {"type": "string", "enum": ["C", "A", ""]},
-    },
-    "required": ["number", "first_name", "last_name", "position", "captain"],
-    "additionalProperties": False,
-}
-TEAM_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "name": {"type": "string"},
-        "players": {"type": "array", "items": PLAYER_SCHEMA},
-        "goalies": {"type": "array", "items": {"type": "string"}},
-        "lines": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "defense": {"type": "array", "items": {"type": "string"}},
-                    "forwards": {"type": "array", "items": {"type": "string"}},
-                },
-                "required": ["defense", "forwards"],
-                "additionalProperties": False,
-            },
-        },
-    },
-    "required": ["name", "players", "goalies", "lines"],
-    "additionalProperties": False,
-}
-OCR_SCHEMA = {
-    "type": "object",
-    "properties": {"home": TEAM_SCHEMA, "away": TEAM_SCHEMA, "notes": {"type": "string"}},
-    "required": ["home", "away", "notes"],
-    "additionalProperties": False,
-}
-
-OCR_PROMPT = """Kuvassa on jääkiekko-ottelun pöytäkirja tai kokoonpanolista (usein suomalainen junioriottelu).
-Lue kummankin joukkueen kokoonpano.
-
-- home = kotijoukkue, away = vierasjoukkue. Jos kuvassa on vain yksi joukkue, laita se kohtaan "away" ja jätä "home" tyhjäksi (tyhjä nimi ja tyhjät listat).
-- players: jokainen pelaaja pelinumeroineen. position: MV = maalivahti, P = puolustaja, H = hyökkääjä, KP = kenttäpelaaja (jos pelipaikkaa ei voi päätellä), tyhjä jos ei tiedossa. captain: C = kapteeni, A = varakapteeni.
-- Kirjoita nimet normaalilla isolla alkukirjaimella (esim. "Häkkinen", ei "HÄKKINEN"). Säilytä ääkköset.
-- goalies: maalivahtien numerot, aloittava maalivahti ensin jos se on merkitty.
-- lines: kentälliset järjestyksessä (1., 2., 3., 4. kenttä …). defense = puolustajien numerot (vasen ensin), forwards = hyökkääjien numerot (vasen laitahyökkääjä, keskushyökkääjä, oikea laitahyökkääjä). Jos pöytäkirjassa ei ole kenttäjakoa, palauta tyhjä lista.
-- Älä keksi pelaajia tai numeroita. Jos jokin merkintä on epäselvä, tee paras arvio ja mainitse se lyhyesti kentässä notes (suomeksi)."""
-
-
-def ocr_lineup(data_url):
-    try:
-        import anthropic
-    except ImportError:
-        raise RuntimeError("anthropic-pakettia ei ole asennettu. Aja: .venv/bin/pip install anthropic "
-                           "ja käynnistä palvelin komennolla .venv/bin/python server.py")
-    if not os.environ.get("ANTHROPIC_API_KEY") and not os.environ.get("ANTHROPIC_AUTH_TOKEN"):
-        raise RuntimeError("ANTHROPIC_API_KEY puuttuu. Aseta se ympäristömuuttujaksi ennen palvelimen käynnistystä.")
-
-    header, b64 = data_url.split(",", 1)
-    media_type = header.split(";")[0].split(":", 1)[1] if ":" in header else "image/jpeg"
-    if media_type not in ("image/jpeg", "image/png", "image/gif", "image/webp"):
-        raise RuntimeError(f"Kuvamuotoa {media_type} ei tueta (käytä JPEG/PNG/WebP).")
-    base64.b64decode(b64[:100] + "==")  # nopea järkevyystarkistus
-
-    client = anthropic.Anthropic()
-    try:
-        response = client.beta.messages.create(
-            model="claude-opus-5-5",
-            max_tokens=16000,
-            betas=["server-side-fallback-2026-07-01"],
-            fallbacks="default",
-            output_config={"format": {"type": "json_schema", "schema": OCR_SCHEMA}},
-            messages=[{
-                "role": "user",
-                "content": [
-                    {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
-                    {"type": "text", "text": OCR_PROMPT},
-                ],
-            }],
-        )
-    except anthropic.AuthenticationError:
-        raise RuntimeError("Claude-rajapinnan avain ei kelpaa (401).")
-    except anthropic.RateLimitError:
-        raise RuntimeError("Claude-rajapinnan käyttöraja täynnä, yritä hetken päästä uudelleen.")
-    except anthropic.APIStatusError as e:
-        raise RuntimeError(f"Claude-rajapinnan virhe {e.status_code}: {e.message}")
-    except anthropic.APIConnectionError:
-        raise RuntimeError("Yhteys Claude-rajapintaan epäonnistui.")
-
-    if response.stop_reason == "refusal":
-        raise RuntimeError("Kuvan tulkinta hylättiin. Kokeile toista kuvaa.")
-    if response.stop_reason == "max_tokens":
-        raise RuntimeError("Vastaus katkesi kesken. Kokeile rajatumpaa kuvaa.")
-    text = next(b.text for b in response.content if b.type == "text")
-    return json.loads(text)
 
 
 # ---------------------------------------------------------------- puhesynteesi (Azure Speech)
@@ -538,8 +434,7 @@ class Handler(BaseHTTPRequestHandler):
             if u.path == "/api/events":
                 return self._send(200, game_events(int(q["gameid"]), int(q.get("season") or current_season())))
             if u.path == "/api/status":
-                ocr = bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
-                return self._send(200, {"ocr": ocr, "tts": bool(azure_conf() or piper_available()), "engine": "azure" if azure_conf() else ("piper" if piper_available() else "")})
+                return self._send(200, {"tts": bool(azure_conf() or piper_available()), "engine": "azure" if azure_conf() else ("piper" if piper_available() else "")})
             if u.path == "/api/voices":
                 return self._send(200, tts_voices())
             return self._send(404, {"error": "Ei löydy"})
@@ -562,18 +457,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(400, {"error": str(e)})
             except Exception as e:
                 return self._send(500, {"error": f"Puhesynteesi epäonnistui: {e}"})
-        if u.path != "/api/ocr":
-            return self._send(404, {"error": "Ei löydy"})
-        try:
-            n = int(self.headers.get("content-length") or 0)
-            if n > 25 * 1024 * 1024:
-                return self._send(413, {"error": "Kuva on liian suuri."})
-            payload = json.loads(self.rfile.read(n))
-            return self._send(200, ocr_lineup(payload["image"]))
-        except RuntimeError as e:
-            return self._send(400, {"error": str(e)})
-        except Exception as e:
-            return self._send(500, {"error": f"Kuvan käsittely epäonnistui: {e}"})
+        return self._send(404, {"error": "Ei löydy"})
 
 
 def main():

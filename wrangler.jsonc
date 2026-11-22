@@ -22,7 +22,6 @@
   // Salaisuudet (ei tähän tiedostoon): Cloudflare-hallinnasta, tyyppi "Secret" (ei "Text")
   // Workers & Pages → kuulutus → Settings → Variables and Secrets
   //   AZURE_SPEECH_KEY   (pakollinen puheäänelle)
-  //   ANTHROPIC_API_KEY  (valinnainen, pöytäkirjan kuvan lukeminen)
   //   SITE_PASSWORD      (sivuston salasana; asetetaan GitHub-salaisuudesta julkaisun yhteydessä)
   "observability": { "enabled": true }
 }

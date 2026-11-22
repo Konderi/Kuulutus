@@ -291,7 +291,7 @@ details.help p{margin:4px 0 0}
       <input id="mAway" placeholder="Vierasjoukkue" class="grow">
       <button class="b" id="btnManual">Luo ottelu</button>
     </div>
-    <p class="small muted" style="margin:8px 0 0">Kokoonpanot syötetään sitten käsin, listana tai pöytäkirjan kuvasta.</p>
+    <p class="small muted" style="margin:8px 0 0">Kokoonpanot syötetään sitten käsin tai listana.</p>
   </div>
   <div class="row" id="logoutRow" hidden style="justify-content:center;margin-top:8px"><a class="b ghost s" href="/logout">Kirjaudu ulos</a></div>
 </section>
@@ -306,9 +306,8 @@ details.help p{margin:4px 0 0}
     <input id="teamName" class="team-title" aria-label="Joukkueen nimi" placeholder="Joukkueen nimi">
     <div class="btn-row full" style="margin-top:14px">
       <button class="b" id="btnRefresh" title="Hae kokoonpanot uudelleen tulospalvelusta">↻ Tulospalvelusta</button>
-      <label class="b">📷 Pöytäkirjan kuva<input type="file" id="photo" accept="image/*" capture="environment" hidden></label>
     </div>
-    <div id="ocrStatus" class="status-line"></div>
+    <div id="rosterStatus" class="status-line"></div>
   </div>
 
   <div class="card">
@@ -549,16 +548,16 @@ $("#btnManual").onclick = () => {
 };
 
 async function fetchRosters(){
-  if (!S.game || !S.game.id) { setOcr('<span class="warn">Ottelua ei ole haettu tulospalvelusta.</span>'); return; }
-  setOcr('<span class="spin"></span> Haetaan kokoonpanoja tulospalvelusta…');
+  if (!S.game || !S.game.id) { setStatus('<span class="warn">Ottelua ei ole haettu tulospalvelusta.</span>'); return; }
+  setStatus('<span class="spin"></span> Haetaan kokoonpanoja tulospalvelusta…');
   try {
     const r = await api(`/api/rosters?gameid=${S.game.id}&season=${S.game.season||0}`);
     for (const side of ["home","away"]) applyApiRoster(S.teams[side], r[side]);
     const n = S.teams.home.players.length + S.teams.away.players.length;
-    setOcr(n ? `<span class="ok">Kokoonpanot haettu tulospalvelusta (koti ${S.teams.home.players.length}, vieras ${S.teams.away.players.length} pelaajaa).</span>`
-             : '<span class="warn">Tulospalvelussa ei vielä ole kokoonpanoja tälle ottelulle. Syötä käsin tai ota kuva pöytäkirjasta.</span>');
+    setStatus(n ? `<span class="ok">Kokoonpanot haettu tulospalvelusta (koti ${S.teams.home.players.length}, vieras ${S.teams.away.players.length} pelaajaa).</span>`
+             : '<span class="warn">Tulospalvelussa ei vielä ole kokoonpanoja tälle ottelulle. Syötä ne käsin tai liitä lista.</span>');
     save(); renderTeam();
-  } catch(e){ setOcr(`<span class="err">${esc(e.message)}</span>`); }
+  } catch(e){ setStatus(`<span class="err">${esc(e.message)}</span>`); }
 }
 function applyApiRoster(team, r){
   if (!r || !r.players.length) return;
@@ -584,7 +583,7 @@ function applyApiRoster(team, r){
 
 // ---------------------------------------------------------------- kokoonpanot
 const T = () => S.teams[S.side];
-function setOcr(h){ $("#ocrStatus").innerHTML = h; }
+function setStatus(h){ $("#rosterStatus").innerHTML = h; }
 $("#sideSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.side = b.dataset.side; save(); renderTeam(); };
 $("#teamName").oninput = e => { T().name = e.target.value; save(); renderHeader(); };
 $("#btnRefresh").onclick = () => { if (confirm("Haetaanko molempien joukkueiden kokoonpanot uudelleen tulospalvelusta? Kenttäjako lasketaan uudelleen.")) fetchRosters(); };
@@ -626,7 +625,7 @@ function renderTeam(){
   team.goalies.forEach(n => n && (used[n] = (used[n]||0)+1));
   const kp = team.players.filter(p => posGroup(p) === "KP").length;
   $("#lineNote").innerHTML = !team.lines.length
-    ? `<div class="notice">Kentällisiä ei ole merkitty, joten kokoonpano kuulutetaan pelipaikoittain${kp ? ` (${kp} pelaajaa on merkitty vain kenttäpelaajaksi)` : ""}. Jos kentät ovat tiedossa, lisää ne käsin (+ Kenttä) tai pöytäkirjan kuvasta.</div>` : "";
+    ? `<div class="notice">Kentällisiä ei ole merkitty, joten kokoonpano kuulutetaan pelipaikoittain${kp ? ` (${kp} pelaajaa on merkitty vain kenttäpelaajaksi)` : ""}. Jos kentät ovat tiedossa, lisää ne käsin (+ Kenttä).</div>` : "";
   $("#lines").innerHTML = team.lines.map((L,li) => `
     <div class="ln">
       <h3>${li+1}. kenttä <button class="b s" data-delline="${li}" title="Poista kenttä">✕</button></h3>
@@ -649,7 +648,7 @@ function renderTeam(){
       <td class="pos"><select data-f="pos">${["MV","P","H","KP"].map(o => `<option${posGroup(p)===o?" selected":""}>${o}</option>`).join("")}</select></td>
       <td class="role"><select data-f="captain">${["","C","A"].map(o => `<option value="${o}"${(p.captain||"")===o?" selected":""}>${o||"–"}</option>`).join("")}</select></td>
       <td><button class="b s" data-delp="${i}" title="Poista">✕</button></td>
-    </tr>`).join("") || `<tr><td colspan="7" class="muted small">Ei pelaajia. Hae tulospalvelusta, liitä lista tai ota kuva pöytäkirjasta.</td></tr>`;
+    </tr>`).join("") || `<tr><td colspan="7" class="muted small">Ei pelaajia. Hae tulospalvelusta tai liitä lista.</td></tr>`;
 }
 
 $("#tab-kokoonpanot").addEventListener("change", e => {
@@ -693,7 +692,7 @@ $("#btnBulkAdd").onclick = () => {
   }
   team.players.sort(sortByNr);
   $("#bulkText").value = ""; $("#bulkBox").style.display = "none";
-  setOcr(`<span class="ok">${n} pelaajaa lisätty/päivitetty.</span>`);
+  setStatus(`<span class="ok">${n} pelaajaa lisätty/päivitetty.</span>`);
   save(); renderTeam();
 };
 function upsert(team, np){
@@ -703,47 +702,6 @@ function upsert(team, np){
   if (np.pos && np.pos !== "KP") p.pos = np.pos;
 }
 
-// ---- kuva
-fetch("/api/status").then(r => r.json()).then(s => { if (!s.ocr) $("#photo").closest("label").title = "Vaatii ANTHROPIC_API_KEY-asetuksen palvelimella"; }).catch(()=>{});
-$("#photo").onchange = async e => {
-  const file = e.target.files[0]; e.target.value = "";
-  if (!file) return;
-  setOcr('<span class="spin"></span> Luetaan pöytäkirjaa kuvasta… (voi kestää noin minuutin)');
-  try {
-    const dataUrl = await shrink(file, 2400);
-    const r = await api("/api/ocr", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({image: dataUrl})});
-    const msgs = [];
-    for (const side of ["home","away"]) {
-      const o = r[side]; if (!o || (!o.players.length && !o.lines.length)) continue;
-      const team = S.teams[side];
-      if (!team.name && o.name) team.name = o.name;
-      o.players.forEach(p => upsert(team, {nr: normNr(p.number), first: titleCase(p.first_name), last: titleCase(p.last_name), pos: p.position || "KP", captain: p.captain}));
-      team.players.sort(sortByNr);
-      if (o.lines.length) {
-        team.lines = o.lines.map(l => ({d: [0,1].map(i => normNr(l.defense[i])), f: [0,1,2].map(i => normNr(l.forwards[i]))}));
-        team.hasLines = true;
-      }
-      if (o.goalies.length) team.goalies = [normNr(o.goalies[0]), normNr(o.goalies[1])];
-      msgs.push(`${side === "home" ? "Koti" : "Vieras"} (${esc(o.name || team.name)}): ${o.players.length} pelaajaa, ${o.lines.length} kenttää`);
-    }
-    save(); renderHeader(); renderTeam();
-    setOcr(msgs.length ? `<span class="ok">Kuvasta luettu – ${msgs.join("; ")}.</span> <b>Tarkista tiedot.</b>${r.notes ? `<br><span class="warn">Huom: ${esc(r.notes)}</span>` : ""}`
-                       : `<span class="warn">Kuvasta ei löytynyt kokoonpanoja.</span> ${esc(r.notes||"")}`);
-  } catch(err){ setOcr(`<span class="err">${esc(err.message)}</span>`); }
-};
-function shrink(file, max){
-  return new Promise((res, rej) => {
-    const img = new Image(), url = URL.createObjectURL(file);
-    img.onload = () => {
-      const s = Math.min(1, max / Math.max(img.width, img.height));
-      const c = document.createElement("canvas"); c.width = Math.round(img.width*s); c.height = Math.round(img.height*s);
-      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-      URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg", 0.88));
-    };
-    img.onerror = () => rej(new Error("Kuvaa ei voitu avata."));
-    img.src = url;
-  });
-}
 
 // ---------------------------------------------------------------- kuulutus (Jääkiekkoliiton kuulutusohje, kotimaiset ottelut 28.08.2023)
 const PH = {

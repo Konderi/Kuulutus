@@ -12,13 +12,8 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python server.py
 ```
 
-Avaa http://localhost:8000. Palvelin tarvitsee vain Pythonin vakiokirjaston. `anthropic`-paketti on tarpeen ainoastaan pöytäkirjan kuvan lukemiseen.
+Avaa http://localhost:8000. Palvelin tarvitsee vain Pythonin vakiokirjaston. `piper-tts` on tarpeen vain paikalliseen Piper-ääneen.
 
-Pöytäkirjan kuvan lukeminen vaatii Clauden API-avaimen:
-
-```bash
-ANTHROPIC_API_KEY=sk-ant-... .venv/bin/python server.py
-```
 
 ### Puheääni
 
@@ -48,8 +43,6 @@ Kuulutuksen ääneen lukemiseen käytetään Microsoftin Azure Speech -neuroää
 ```
 AZURE_SPEECH_KEY=avain-tähän
 AZURE_SPEECH_REGION=northeurope
-# valinnainen, pöytäkirjan kuvan lukemiseen:
-ANTHROPIC_API_KEY=sk-ant-...
 ```
 
 4. Käynnistä palvelin uudelleen.
@@ -59,12 +52,12 @@ ANTHROPIC_API_KEY=sk-ant-...
 - Jos ääni lausuu jonkin nimen väärin, kirjoita pelaajalistan **Ääntämys**-sarakkeeseen nimi niin kuin se lausutaan (esim. "Aaron Ramsei").
 - Valmiit äänitiedostot tallentuvat kansioon `cache/tts`. Sama kuulutus ei siis maksa toista kertaa, ja **⬇ Valmistele ääni** luo kaikki tiedostot etukäteen, jolloin toisto alkaa heti.
 
-Jos haluat käyttää sovellusta puhelimella samassa verkossa, käynnistä palvelin komennolla `HOST=0.0.0.0 .venv/bin/python server.py` ja avaa koneen IP-osoite (esim. `http://192.168.1.20:8000`). Huom: tällöin kuka tahansa samassa verkossa voi käyttää kuvan lukua API-avaimellasi.
+Jos haluat käyttää sovellusta puhelimella samassa verkossa, käynnistä palvelin komennolla `HOST=0.0.0.0 .venv/bin/python server.py` ja avaa koneen IP-osoite (esim. `http://192.168.1.20:8000`). Huom: tällöin kuka tahansa samassa verkossa voi käyttää sovellusta ja Azure-kiintiötäsi.
 
 ## Käyttö
 
 1. **Ottelu**: valitse päivä ja hae joukkueen nimellä (esim. `keltainen hyri`). Voit myös luoda tyhjän ottelun käsin.
-2. **Kokoonpanot**: pelaajat haetaan tulospalvelusta. Junioriotteluissa tulospalvelussa ei ole kenttäjakoa, joten sovellus jakaa pelaajat kenttiin pelipaikan ja numeron mukaan. **Tarkista kentät pöytäkirjasta**, korjaa ne valikoista tai ota pöytäkirjasta kuva (📷). Pelaajia voi lisätä käsin tai liittää listana.
+2. **Kokoonpanot**: pelaajat haetaan tulospalvelusta automaattisesti, kun järjestäjä on syöttänyt ne TiTuun. Junioriotteluissa tulospalvelussa ei ole kenttäjakoa, joten kokoonpano kuulutetaan pelipaikoittain. Jos kentät ovat tiedossa, ne voi merkitä käsin. Pelaajia voi lisätä käsin tai liittää listana.
 3. **Kuulutus**: tervetulotoivotus, joukkueiden kokoonpanot (vierasjoukkue ensin: maalivahdit, kenttäpelaajat numerojärjestyksessä, päävalmentaja) ja tuomarit ohjeen mukaisesti. Valitse joukkue (vieras, koti tai molemmat) ja kieli (suomi tai englanti). Teksti näkyy isolla, ja 🔊-painike lukee sen ääneen joko kokonaan tai lohko kerrallaan.
 
 4. **Tapahtumat**: maalit, rangaistukset, aikalisät ja maalivahdin vaihdot luetaan tulospalvelusta (**Seuraa ottelua**, päivitys 10 s välein). Uudet tapahtumat menevät jonoon. Ohjeen mukaan kuulutus tehdään vasta, kun peli jatkuu. **Kuuluta automaattisesti, kun peli jatkuu** odottaa, että tulospalvelun peliaika etenee tapahtuman ajan ohi: kirjaus tehdään katkolla kellon seistessä, joten etenevä aika tarkoittaa, että peli on käynnissä. Peliaika päivittyy tulospalveluun noin 30 sekunnin välein, joten kuulutus tulee yleensä 10–40 sekuntia aloituksen jälkeen. **▶ Kuuluta jono** lukee jonon heti. **Muut kuulutukset** -osiossa ovat Kunnioita peliä -kuulutus, erien viimeiset minuutit, torjunnat, yleisömäärä ja lopputulos.
@@ -132,10 +125,9 @@ Repo → Actions → **Julkaise Cloudflareen** → Run workflow (tai mikä tahan
 Cloudflare → Workers & Pages → **kuulutus** → Settings → Variables and Secrets → Add (tyyppi *Secret*):
 
 - `AZURE_SPEECH_KEY`: Azure Speech -avain (alue `swedencentral` on jo `wrangler.jsonc`:ssä)
-- `ANTHROPIC_API_KEY`: valinnainen, pöytäkirjan kuvan lukeminen
 
 ### 5. Pääsynhallinta (suositus)
-Sivuston rajapinnat käyttävät Azure- ja Claude-kiintiötäsi, joten rajaa pääsy: Cloudflare Zero Trust → Access → Applications → **Add an application** → Self-hosted → domain `kuulutus.konderi.fi` → Policy: *Allow*, Include → Emails → omat osoitteet. Kirjautuminen tapahtuu sähköpostiin tulevalla kertakoodilla. Ilmainen enintään 50 käyttäjälle.
+Sivuston rajapinnat käyttävät Azure-kiintiötäsi, joten rajaa pääsy: Cloudflare Zero Trust → Access → Applications → **Add an application** → Self-hosted → domain `kuulutus.konderi.fi` → Policy: *Allow*, Include → Emails → omat osoitteet. Kirjautuminen tapahtuu sähköpostiin tulevalla kertakoodilla. Ilmainen enintään 50 käyttäjälle.
 
 ### Paikallinen Worker-testaus
 

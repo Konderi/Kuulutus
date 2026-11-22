@@ -5,10 +5,7 @@
 //   GET  /api/events?gameid=&season=  tapahtumat, tuomarit, torjunnat
 //   GET  /api/status, /api/voices
 //   POST /api/tts                     Azure Speech (mp3), välimuistissa
-//   POST /api/ocr                     pöytäkirjan kuva → kokoonpanot (Claude)
 // Staattinen käyttöliittymä (static/) tarjoillaan Workers Static Assets -toiminnolla.
-
-import Anthropic from "@anthropic-ai/sdk";
 
 const BASE = "https://tulospalvelu.leijonat.fi";
 const DISTRICTS = [-1, 1, 2, 3, 4, 5, 6, 7, 8];
@@ -205,69 +202,6 @@ async function azureTts(env, ctx, { lang = "fi", voice, rate = 1, segs }) {
   return resp;
 }
 
-// ---------------------------------------------------------------- kuvan tulkinta (Claude)
-
-const PLAYER_SCHEMA = {
-  type: "object",
-  properties: {
-    number: { type: "string" }, first_name: { type: "string" }, last_name: { type: "string" },
-    position: { type: "string", enum: ["MV", "P", "H", "KP", ""] }, captain: { type: "string", enum: ["C", "A", ""] },
-  },
-  required: ["number", "first_name", "last_name", "position", "captain"], additionalProperties: false,
-};
-const TEAM_SCHEMA = {
-  type: "object",
-  properties: {
-    name: { type: "string" },
-    players: { type: "array", items: PLAYER_SCHEMA },
-    goalies: { type: "array", items: { type: "string" } },
-    lines: { type: "array", items: { type: "object", properties: { defense: { type: "array", items: { type: "string" } }, forwards: { type: "array", items: { type: "string" } } }, required: ["defense", "forwards"], additionalProperties: false } },
-  },
-  required: ["name", "players", "goalies", "lines"], additionalProperties: false,
-};
-const OCR_SCHEMA = { type: "object", properties: { home: TEAM_SCHEMA, away: TEAM_SCHEMA, notes: { type: "string" } }, required: ["home", "away", "notes"], additionalProperties: false };
-
-const OCR_PROMPT = `Kuvassa on jääkiekko-ottelun pöytäkirja tai kokoonpanolista (usein suomalainen junioriottelu).
-Lue kummankin joukkueen kokoonpano.
-
-- home = kotijoukkue, away = vierasjoukkue. Jos kuvassa on vain yksi joukkue, laita se kohtaan "away" ja jätä "home" tyhjäksi (tyhjä nimi ja tyhjät listat).
-- players: jokainen pelaaja pelinumeroineen. position: MV = maalivahti, P = puolustaja, H = hyökkääjä, KP = kenttäpelaaja (jos pelipaikkaa ei voi päätellä), tyhjä jos ei tiedossa. captain: C = kapteeni, A = varakapteeni.
-- Kirjoita nimet normaalilla isolla alkukirjaimella (esim. "Häkkinen", ei "HÄKKINEN"). Säilytä ääkköset.
-- goalies: maalivahtien numerot, aloittava maalivahti ensin jos se on merkitty.
-- lines: kentälliset järjestyksessä (1., 2., 3., 4. kenttä …). defense = puolustajien numerot (vasen ensin), forwards = hyökkääjien numerot (vasen laitahyökkääjä, keskushyökkääjä, oikea laitahyökkääjä). Jos pöytäkirjassa ei ole kenttäjakoa, palauta tyhjä lista.
-- Älä keksi pelaajia tai numeroita. Jos jokin merkintä on epäselvä, tee paras arvio ja mainitse se lyhyesti kentässä notes (suomeksi).`;
-
-async function ocrLineup(env, dataUrl) {
-  if (!env.ANTHROPIC_API_KEY) throw new UserError("Kuvan lukeminen ei ole käytössä: ANTHROPIC_API_KEY puuttuu.");
-  const m = /^data:(image\/(?:jpeg|png|gif|webp));base64,(.+)$/s.exec(dataUrl || "");
-  if (!m) throw new UserError("Kuvamuotoa ei tueta (käytä JPEG/PNG/WebP).");
-  const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
-  let response;
-  try {
-    response = await client.beta.messages.create({
-      model: "claude-opus-5-5",
-      max_tokens: 16000,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      output_config: { format: { type: "json_schema", schema: OCR_SCHEMA } },
-      messages: [{ role: "user", content: [
-        { type: "image", source: { type: "base64", media_type: m[1], data: m[2] } },
-        { type: "text", text: OCR_PROMPT },
-      ] }],
-    });
-  } catch (e) {
-    if (e instanceof Anthropic.AuthenticationError) throw new UserError("Claude-rajapinnan avain ei kelpaa (401).");
-    if (e instanceof Anthropic.RateLimitError) throw new UserError("Claude-rajapinnan käyttöraja täynnä, yritä hetken päästä uudelleen.");
-    if (e instanceof Anthropic.APIConnectionError) throw new UserError("Yhteys Claude-rajapintaan epäonnistui.");
-    if (e instanceof Anthropic.APIError) throw new UserError(`Claude-rajapinnan virhe ${e.status}: ${e.message}`);
-    throw e;
-  }
-  if (response.stop_reason === "refusal") throw new UserError("Kuvan tulkinta hylättiin. Kokeile toista kuvaa.");
-  if (response.stop_reason === "max_tokens") throw new UserError("Vastaus katkesi kesken. Kokeile rajatumpaa kuvaa.");
-  const text = response.content.find(b => b.type === "text")?.text;
-  return JSON.parse(text);
-}
-
 // ---------------------------------------------------------------- kirjautuminen (salasana)
 // Salasana on Workerin salaisuus SITE_PASSWORD. Onnistuneen kirjautumisen jälkeen selaimeen
 // annetaan HMAC-allekirjoitettu eväste (30 vrk). Salasanan vaihto mitätöi vanhat kirjautumiset.
@@ -379,18 +313,13 @@ export default {
         if (url.pathname === "/api/events") return json(await gameEvents(+q.get("gameid"), +q.get("season") || await currentSeason()));
         if (url.pathname === "/api/status") {
           const tts = !!(env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION);
-          return json({ ocr: !!env.ANTHROPIC_API_KEY, tts, engine: tts ? "azure" : "", auth: true });
+          return json({ tts, engine: tts ? "azure" : "", auth: true });
         }
         if (url.pathname === "/api/voices") return json(env.AZURE_SPEECH_KEY ? VOICES : { fi: [], en: [] });
       }
       if (request.method === "POST" && url.pathname === "/api/tts") {
         const body = await request.json();
         return await azureTts(env, ctx, body);
-      }
-      if (request.method === "POST" && url.pathname === "/api/ocr") {
-        if (+(request.headers.get("content-length") || 0) > 25 * 1024 * 1024) return json({ error: "Kuva on liian suuri." }, 413);
-        const body = await request.json();
-        return json(await ocrLineup(env, body.image));
       }
       if (url.pathname.startsWith("/api/")) return json({ error: "Ei löydy" }, 404);
       return env.ASSETS.fetch(request);
