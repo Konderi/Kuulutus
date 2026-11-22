@@ -1,0 +1,8 @@
+cache/
+.env
+.venv/
+voices/
+naytteet/
+node_modules/
+.wrangler/
+dist/

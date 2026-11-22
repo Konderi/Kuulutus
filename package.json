@@ -1,0 +1,21 @@
+{
+  "name": "kuulutus",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Jääkiekon kuulutusapuri: kokoonpanot ja pelitapahtumat Leijonat-tulospalvelusta, puheääni Azure Speechillä",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.12.0"
+  },
+  "devDependencies": {
+    "wrangler": "4.166.0"
+  },
+  "allowScripts": {
+    "workerd@1.20261119.1": true,
+    "esbuild@0.28.2": true
+  }
+}

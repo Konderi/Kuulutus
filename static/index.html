@@ -1,0 +1,1134 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kuulutus</title>
+<style>
+:root{
+  --bg:#f4f6f9; --card:#fff; --ink:#14202e; --muted:#5d6b7a; --line:#d9e0e8;
+  --accent:#0b5cad; --accent-ink:#fff; --warn:#b45309; --bad:#b91c1c; --ok:#15803d;
+  --chip:#e8eef5; --hl:#fff4cc;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#0e141b;--card:#17202a;--ink:#e8eef5;--muted:#9aa8b6;--line:#2a3643;
+    --accent:#4c9be8;--accent-ink:#06121f;--chip:#22303e;--hl:#3a3413;--warn:#f59e0b;--bad:#f87171;--ok:#4ade80}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line)}
+.wrap{max-width:960px;margin:0 auto;padding:0 16px}
+.top{display:flex;align-items:center;gap:12px;padding:10px 0}
+.top h1{font-size:18px;margin:0}
+.top .game{color:var(--muted);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+nav{display:flex;gap:4px}
+nav button{flex:1;border:0;background:none;padding:10px 6px;font:inherit;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;cursor:pointer}
+nav button.on{color:var(--accent);border-color:var(--accent)}
+main{padding:16px 0 80px}
+section.tab{display:none}section.tab.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.card h2{font-size:16px;margin:0 0 10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px}
+textarea{width:100%;min-height:110px}
+button.b{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:8px 12px;cursor:pointer}
+button.b.p{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.b.s{padding:4px 8px;font-size:14px}
+button.b:disabled{opacity:.5;cursor:default}
+.muted{color:var(--muted)}.small{font-size:13px}
+.err{color:var(--bad)}.warn{color:var(--warn)}.ok{color:var(--ok)}
+.games{display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow:auto}
+.g{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--card)}
+.g:hover{border-color:var(--accent)}
+.g .t{font-weight:700}.g .lv{font-size:13px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--card);color:var(--ink);font:inherit;padding:7px 12px;cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+table{width:100%;border-collapse:collapse}
+td,th{padding:4px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-size:13px;color:var(--muted);font-weight:600}
+td input{width:100%;padding:5px 6px}
+td.nr input{width:56px;text-align:center}
+td.pos select{padding:5px}
+.lines{display:flex;flex-direction:column;gap:10px}
+.ln{border:1px solid var(--line);border-radius:8px;padding:10px}
+.ln h3{margin:0 0 8px;font-size:15px;display:flex;justify-content:space-between;align-items:center}
+.slots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.slot label{display:block;font-size:12px;color:var(--muted);text-align:center}
+.slot select{width:100%;padding:6px 2px}
+.slot select.dup{border-color:var(--bad);outline:2px solid var(--bad)}
+.gk{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;max-width:420px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--chip);border-radius:999px;padding:2px 10px;font-size:14px}
+.script{font-size:22px;line-height:1.5}
+.script .blk{padding:10px 12px;border-radius:8px;margin:0 0 8px;border-left:4px solid transparent;display:flex;gap:10px;align-items:flex-start}
+.script .blk .txt{flex:1}
+.script .blk.cur{background:var(--hl);border-left-color:var(--accent)}
+.script .blk h4{margin:0 0 2px;font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.script b{font-weight:800}
+.blk.ev.read{opacity:.7}
+.blk.ev.off{opacity:.45}
+.blk.ev.cur{opacity:1}
+.big{font-size:26px}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:s 1s linear infinite;vertical-align:-3px}
+@keyframes s{to{transform:rotate(360deg)}}
+.notice{background:var(--hl);border-radius:8px;padding:8px 10px;font-size:14px;margin:8px 0}
+@media (max-width:560px){
+  .slots{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .slots .slot.f{grid-column:span 1}
+  .script{font-size:19px}
+  td.role,th.role{display:none}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top"><h1>🏒 Kuulutus</h1><div class="game" id="hdrGame">Ei valittua ottelua</div></div>
+    <nav id="nav">
+      <button data-tab="ottelu" class="on">1. Ottelu</button>
+      <button data-tab="kokoonpanot">2. Kokoonpanot</button>
+      <button data-tab="kuulutus">3. Kuulutus</button>
+      <button data-tab="tapahtumat">4. Tapahtumat</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+<!-- ============ OTTELU ============ -->
+<section class="tab on" id="tab-ottelu">
+  <div class="card">
+    <h2>Hae ottelu tulospalvelusta</h2>
+    <div class="row">
+      <input type="date" id="date">
+      <input type="search" id="q" placeholder="Hae joukkue, sarja tai halli…" style="flex:1;min-width:180px">
+      <button class="b" id="btnLoad">Hae</button>
+    </div>
+    <p class="small muted" id="gamesInfo"></p>
+    <div class="games" id="games"></div>
+  </div>
+  <div class="card">
+    <h2>…tai syötä käsin / pöytäkirjan kuvasta</h2>
+    <div class="row">
+      <input id="mHome" placeholder="Kotijoukkue" style="flex:1;min-width:140px">
+      <input id="mAway" placeholder="Vierasjoukkue" style="flex:1;min-width:140px">
+      <button class="b" id="btnManual">Uusi ottelu</button>
+    </div>
+    <p class="small muted">Luo tyhjän ottelun. Kokoonpanot syötetään seuraavalla välilehdellä käsin, tekstinä tai kuvasta.</p>
+  </div>
+</section>
+
+<!-- ============ KOKOONPANOT ============ -->
+<section class="tab" id="tab-kokoonpanot">
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div class="seg" id="sideSeg">
+        <button data-side="home">Koti</button><button data-side="away" class="on">Vieras</button>
+      </div>
+      <div class="row">
+        <button class="b" id="btnRefresh" title="Hae kokoonpanot uudelleen tulospalvelusta">↻ Tulospalvelu</button>
+        <label class="b" style="display:inline-block">📷 Pöytäkirjan kuva<input type="file" id="photo" accept="image/*" capture="environment" hidden></label>
+      </div>
+    </div>
+    <div id="ocrStatus" class="small"></div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <h2 style="margin:0">Joukkue: <input id="teamName" style="font-weight:700;width:220px"></h2>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Maalivahdit</h2>
+    <div class="gk" id="gk"></div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <h2 style="margin:0">Kentälliset</h2>
+      <div class="row">
+        <button class="b s" id="btnAuto" title="Esitäyttää kentät pelipaikan ja numerojärjestyksen mukaan – arvaus, korjaa pöytäkirjan mukaan">Esitäytä kentät</button>
+        <button class="b s" id="btnAddLine">+ Kenttä</button>
+        <button class="b s" id="btnClearLines">Tyhjennä</button>
+      </div>
+    </div>
+    <div id="lineNote"></div>
+    <div class="lines" id="lines"></div>
+    <div id="unassigned" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:6px">
+      <h2 style="margin:0">Pelaajat</h2>
+      <div class="row">
+        <button class="b s" id="btnAddPlayer">+ Pelaaja</button>
+        <button class="b s" id="btnBulk">Liitä lista</button>
+      </div>
+    </div>
+    <div id="bulkBox" style="display:none;margin-bottom:10px">
+      <textarea id="bulkText" placeholder="Yksi pelaaja per rivi: numero etunimi sukunimi [MV|P|H] [C|A]&#10;esim.&#10;30 Matti Meikäläinen MV&#10;4 Ville Virtanen P A&#10;19 Kalle Korhonen H C"></textarea>
+      <div class="row" style="margin-top:6px"><button class="b p s" id="btnBulkAdd">Lisää pelaajat</button><span class="small muted">Saman numeron pelaaja päivitetään.</span></div>
+    </div>
+    <table>
+      <thead><tr><th>#</th><th>Etunimi</th><th>Sukunimi</th><th title="Kirjoita nimi niin kuin se lausutaan (suomeksi), jos ääni lausuu sen väärin">Ääntämys</th><th>Paikka</th><th class="role">K</th><th></th></tr></thead>
+      <tbody id="players"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ KUULUTUS ============ -->
+<section class="tab" id="tab-kuulutus">
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div class="row">
+        <div class="seg" id="annSeg">
+          <button data-side="away" class="on">Vieras</button><button data-side="home">Koti</button><button data-side="both">Molemmat</button>
+        </div>
+        <div class="seg" id="langSeg">
+          <button data-lang="fi" class="on">Suomi</button><button data-lang="en">English</button>
+        </div>
+      </div>
+      <div class="row small">
+        <label><input type="checkbox" id="optWelcome"> Tervetuloa</label>
+        <label><input type="checkbox" id="optCoach"> Päävalmentaja</label>
+        <label><input type="checkbox" id="optRefs"> Tuomarit</label>
+        <label><input type="checkbox" id="optFirst" checked> Etunimet</label>
+        <label class="lineopt" title="Kun kentät on merkitty: kuuluta myös kenttiin kuulumattomat pelaajat"><input type="checkbox" id="optExtra" checked> Muut pelaajat</label>
+        <label class="lineopt"><input type="checkbox" id="optFwd"> Hyökkääjät ensin</label>
+      </div>
+    </div>
+    <div class="row small" style="margin-top:8px">
+      <label>Halli <input id="hall" placeholder="esim. Riihimäen jäähalliin" style="width:220px"></label>
+      <span class="muted">– tervetulotoivotukseen muodossa ”…ottelua <i>Riihimäen jäähalliin</i>”</span>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="b p" id="btnSpeakAll">🔊 Lue kaikki</button>
+      <button class="b" id="btnStop">■ Pysäytä</button>
+      <button class="b" id="btnPrep" style="display:none" title="Luo äänitiedostot etukäteen, jolloin toisto alkaa heti">⬇ Valmistele ääni</button>
+      <label class="small">Nopeus <input type="range" id="rate" min="0.7" max="1.2" step="0.05" value="0.95" style="vertical-align:middle;width:110px"></label>
+      <select id="voice" class="small" style="max-width:220px"></select>
+    </div>
+    <p class="small muted" id="voiceInfo"></p>
+  </div>
+  <div class="card script" id="script"></div>
+</section>
+
+<!-- ============ TAPAHTUMAT ============ -->
+<section class="tab" id="tab-tapahtumat">
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div class="big" id="evScore">–</div>
+      <div class="seg" id="evLangSeg">
+        <button data-lang="fi" class="on">Suomi</button><button data-lang="en">English</button>
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px;gap:16px">
+      <label><input type="checkbox" id="evFollow"> <b>Seuraa ottelua</b> <span class="small muted">(päivitys 5 s välein)</span></label>
+      <label><input type="checkbox" id="evAuto"> <b>Kuuluta automaattisesti, kun peli jatkuu</b></label>
+    </div>
+    <div class="row small" style="margin-top:8px">
+      <span class="muted">Jonoon:</span>
+      <label><input type="checkbox" data-evt="Goal"> Maalit</label>
+      <label><input type="checkbox" data-evt="Penalty"> Rangaistukset</label>
+      <label><input type="checkbox" data-evt="Timeout"> Aikalisät</label>
+      <label><input type="checkbox" data-evt="GK"> Maalivahdin vaihdot</label>
+      <label title="Rangaistusten päättyminen: täysilukuinen / tasalukuiset (lasketaan tapahtumista ja peliajasta)"><input type="checkbox" data-evt="PX"> Täysilukuisuus</label>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="b p" id="btnEvNext">▶ Kuuluta jono</button>
+      <button class="b" id="btnEvStop">■ Pysäytä</button>
+      <button class="b s" id="btnEvClear">Tyhjennä jono</button>
+    </div>
+    <p class="small muted" style="margin:6px 0 0">Ohjeen mukaan kuulutus tehdään pelin käynnistyttyä, seuraavan aloituksen jälkeen. Automaattinen kuulutus odottaa, että tulospalvelun peliaika etenee tapahtuman ajan ohi, eli peli on jatkunut. Tieto päivittyy tulospalveluun noin 30 sekunnin välein. ”Kuuluta jono” lukee jonon heti.</p>
+    <p class="small muted" id="evInfo"></p>
+  </div>
+  <div class="card">
+    <h2>Muut kuulutukset</h2>
+    <div class="row">
+      <button class="b s" data-man="respect">Kunnioita peliä</button>
+      <button class="b s" data-man="min1">1. erää jäljellä 1 min</button>
+      <button class="b s" data-man="min2">2. erää jäljellä 1 min</button>
+      <button class="b s" data-man="min3">3. erää jäljellä 2 min</button>
+      <span class="row" style="gap:4px"><button class="b s" data-man="saves">Torjunnat</button><select id="savesPeriod" class="small"><option value="1">1. erä</option><option value="2">2. erä</option><option value="3">3. erä</option><option value="4">jatkoaika</option><option value="0">koko ottelu</option></select></span>
+      <button class="b s" data-man="crowd">Yleisömäärä</button>
+      <button class="b s" data-man="final">Lopputulos</button>
+    </div>
+    <div class="script" id="manPreview" style="margin-top:10px"></div>
+  </div>
+  <div class="card script" id="evList"></div>
+</section>
+</main>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const KEY = "kuulutus.v2";
+const SLOTS = [["d",0,"VP"],["d",1,"OP"],["f",0,"VL"],["f",1,"KH"],["f",2,"OL"]];
+const ORD = ["Ensimmäinen","Toinen","Kolmas","Neljäs","Viides","Kuudes"];
+
+const emptyTeam = name => ({name: name || "", players: [], staff: [], goalies: ["",""], lines: [], fromApi:false});
+function newLine(){ return {d:["",""], f:["","",""]}; }
+
+let S = load() || {game:null, teams:{home:emptyTeam(""), away:emptyTeam("")}, side:"away", ann:"away", opts:{coach:false, extra:true, first:true}, rate:0.9, voice:""};
+S.lang ||= "fi"; S.voices ||= {fi:"", en:""}; S.rate = S.rate || 0.95;
+S.ev ||= {gameId:null, follow:false, auto:false, types:{Goal:true, Penalty:true, Timeout:true, GK:true}, seen:{}, read:{}};
+S.ev.types.PX ??= true; S.opts.welcome ??= true; S.opts.refs ??= true; if (S.opts.coachDefault !== 1) { S.opts.coach = true; S.opts.coachDefault = 1; }
+if (!["home","away","both"].includes(S.ann)) S.ann = "away";
+function load(){ try { return JSON.parse(localStorage.getItem(KEY)); } catch { return null; } }
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} }
+
+// ---------------------------------------------------------------- utils
+function titleCase(s){
+  s = String(s||"").trim();
+  if (!s) return s;
+  if (s !== s.toUpperCase() && s !== s.toLowerCase()) return s; // jo sekamuotoinen
+  return s.toLowerCase().replace(/(^|[\s\-'])(\p{L})/gu, (m,a,b) => a + b.toUpperCase());
+}
+const normNr = n => String(n ?? "").replace(/^#/, "").trim().replace(/^0+(?=\d)/, "");
+function player(team, nr){ nr = normNr(nr); return nr ? team.players.find(p => p.nr === nr) : null; }
+function joinFi(arr){ arr = arr.filter(Boolean); if (arr.length < 2) return arr.join(""); return arr.slice(0,-1).join(", ") + " ja " + arr[arr.length-1]; }
+function posGroup(p){ const r = (p.pos||"").toUpperCase(); if (r==="MV") return "MV"; if (["P","VP","OP","7. P","8. P"].includes(r)) return "P"; if (["H","VL","KH","OL","13. H","14. H"].includes(r)) return "H"; return "KP"; }
+function sortByNr(a,b){ return (parseInt(a.nr)||999) - (parseInt(b.nr)||999); }
+async function api(url, opts){
+  const r = await fetch(url, opts);
+  const j = await r.json().catch(() => ({error: "Virheellinen vastaus palvelimelta"}));
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+
+// ---------------------------------------------------------------- tabs
+function showTab(t){
+  document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
+  document.querySelectorAll("section.tab").forEach(s => s.classList.toggle("on", s.id === "tab-"+t));
+  if (t === "kokoonpanot") renderTeam();
+  if (t === "kuulutus") renderScript();
+  if (t === "tapahtumat") { renderEvents(); fetchEvents(); }
+  window.scrollTo(0,0);
+}
+$("#nav").onclick = e => { const b = e.target.closest("button"); if (b) showTab(b.dataset.tab); };
+
+function renderHeader(){
+  const g = S.game;
+  $("#hdrGame").textContent = g ? `${S.teams.home.name || "Koti"} – ${S.teams.away.name || "Vieras"}${g.level ? " · "+g.level : ""}${g.time ? " · "+g.time : ""}` : "Ei valittua ottelua";
+}
+
+// ---------------------------------------------------------------- ottelu
+const today = new Date(); $("#date").value = new Date(today - today.getTimezoneOffset()*60000).toISOString().slice(0,10);
+let GAMES = [];
+async function loadGames(){
+  $("#gamesInfo").innerHTML = '<span class="spin"></span> Haetaan otteluita…';
+  $("#games").innerHTML = "";
+  try {
+    const d = await api("/api/games?date=" + encodeURIComponent($("#date").value));
+    GAMES = d.games;
+    renderGames();
+  } catch(e){ $("#gamesInfo").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+function renderGames(){
+  const words = $("#q").value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const list = GAMES.filter(g => { const hay = [g.home,g.away,g.homeClub,g.awayClub,g.level,g.serie,g.rink].join(" ").toLowerCase(); return words.every(w => hay.includes(w)); });
+  $("#gamesInfo").textContent = `${list.length} / ${GAMES.length} ottelua`;
+  $("#games").innerHTML = list.slice(0,300).map(g => `
+    <div class="g" data-id="${g.id}">
+      <div class="t">${esc(g.time)}</div>
+      <div><div><b>${esc(g.home)}</b> – <b>${esc(g.away)}</b></div><div class="lv">${esc(g.serie || g.level)} · ${esc(g.rink)}</div></div>
+      <div class="small muted">${g.status ? esc(g.score) : ""}</div>
+    </div>`).join("");
+}
+$("#btnLoad").onclick = loadGames;
+$("#date").onchange = loadGames;
+$("#q").oninput = renderGames;
+$("#games").onclick = e => {
+  const el = e.target.closest(".g"); if (!el) return;
+  const g = GAMES.find(x => String(x.id) === el.dataset.id);
+  if (S.game && S.game.id === g.id && !confirm("Ottelu on jo valittu. Haetaanko kokoonpanot uudelleen (käsin tehdyt kenttäjaot nollautuvat)?")) { showTab("kokoonpanot"); return; }
+  S.game = {id:g.id, season:g.season, level:g.serie || g.level, time:g.time, rink:g.rink, date:$("#date").value};
+  S.teams = {home: emptyTeam(g.home), away: emptyTeam(g.away)};
+  S.side = S.ann = "away";
+  save(); renderHeader();
+  fetchRosters().then(() => showTab("kokoonpanot"));
+};
+$("#btnManual").onclick = () => {
+  if ((S.teams.home.players.length || S.teams.away.players.length) && !confirm("Korvataanko nykyinen ottelu uudella tyhjällä?")) return;
+  S.game = {id:null, level:"", time:"", manual:true};
+  S.teams = {home: emptyTeam($("#mHome").value.trim()), away: emptyTeam($("#mAway").value.trim())};
+  save(); renderHeader(); showTab("kokoonpanot");
+};
+
+async function fetchRosters(){
+  if (!S.game || !S.game.id) { setOcr('<span class="warn">Ottelua ei ole haettu tulospalvelusta.</span>'); return; }
+  setOcr('<span class="spin"></span> Haetaan kokoonpanoja tulospalvelusta…');
+  try {
+    const r = await api(`/api/rosters?gameid=${S.game.id}&season=${S.game.season||0}`);
+    for (const side of ["home","away"]) applyApiRoster(S.teams[side], r[side]);
+    const n = S.teams.home.players.length + S.teams.away.players.length;
+    setOcr(n ? `<span class="ok">Kokoonpanot haettu tulospalvelusta (koti ${S.teams.home.players.length}, vieras ${S.teams.away.players.length} pelaajaa).</span>`
+             : '<span class="warn">Tulospalvelussa ei vielä ole kokoonpanoja tälle ottelulle. Syötä käsin tai ota kuva pöytäkirjasta.</span>');
+    save(); renderTeam();
+  } catch(e){ setOcr(`<span class="err">${esc(e.message)}</span>`); }
+}
+function applyApiRoster(team, r){
+  if (!r || !r.players.length) return;
+  team.players = r.players.filter(p => p.nr || p.last).map(p => ({nr: normNr(p.nr), first: titleCase(p.first), last: titleCase(p.last), pos: p.pos, captain: p.captain || ""})).sort(sortByNr);
+  team.staff = (r.staff||[]).map(s => ({first: titleCase(s.first), last: titleCase(s.last), role: s.role}));
+  team.fromApi = true;
+  team.hasLines = r.players.some(p => p.line > 0);
+  if (team.hasLines) {
+    // Tulospalvelussa on kenttäjako (yleensä vain aikuisten sarjoissa)
+    const lines = [];
+    for (const p of r.players) {
+      if (!p.line || posGroup(p) === "MV") continue;
+      const L = lines[p.line-1] ||= newLine();
+      const map = {VP:["d",0],OP:["d",1],VL:["f",0],KH:["f",1],OL:["f",2]}[p.pos];
+      if (map && !L[map[0]][map[1]]) L[map[0]][map[1]] = normNr(p.nr);
+      else { const k = posGroup(p) === "P" ? "d" : "f"; const i = L[k].indexOf(""); if (i >= 0) L[k][i] = normNr(p.nr); }
+    }
+    team.lines = Array.from(lines, l => l || newLine());
+  } else team.lines = [];   // ei kenttäjakoa: ei keksitä kenttiä
+  // Aloittavaa maalivahtia ei tiedetä tulospalvelusta: valitaan käsin
+  team.goalies = ["", ""];
+}
+
+// ---------------------------------------------------------------- kokoonpanot
+const T = () => S.teams[S.side];
+function setOcr(h){ $("#ocrStatus").innerHTML = h; }
+$("#sideSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.side = b.dataset.side; save(); renderTeam(); };
+$("#teamName").oninput = e => { T().name = e.target.value; save(); renderHeader(); };
+$("#btnRefresh").onclick = () => { if (confirm("Haetaanko molempien joukkueiden kokoonpanot uudelleen tulospalvelusta? Kenttäjako lasketaan uudelleen.")) fetchRosters(); };
+
+function autoLines(team){
+  const pool = {P:[], H:[], KP:[]};
+  team.players.filter(p => p.nr && posGroup(p) !== "MV").sort(sortByNr).forEach(p => pool[posGroup(p)].push(p.nr));
+  const take = k => pool[k].shift() || pool.KP.shift() || "";
+  const lines = [];
+  while ((pool.P.length || pool.H.length || pool.KP.length) && lines.length < 6) {
+    const L = newLine();
+    L.d = [take("P"), take("P")];
+    L.f = [take("H"), take("H"), take("H")];
+    lines.push(L);
+  }
+  team.lines = lines;
+}
+$("#btnAuto").onclick = () => { if (!confirm("Korvataanko nykyinen kenttäjako automaattisella?")) return; autoLines(T()); save(); renderTeam(); };
+$("#btnAddLine").onclick = () => { T().lines.push(newLine()); save(); renderTeam(); };
+$("#btnClearLines").onclick = () => { if (!confirm("Poistetaanko kaikki kentät? Kuulutus luetaan silloin pelipaikoittain.")) return; T().lines = []; save(); renderTeam(); };
+
+function playerOptions(team, sel, filter){
+  const opts = team.players.filter(p => p.nr).slice().sort(sortByNr);
+  const ordered = filter ? [...opts.filter(filter), ...opts.filter(p => !filter(p))] : opts;
+  return `<option value="">–</option>` + ordered.map(p =>
+    `<option value="${esc(p.nr)}"${p.nr===sel?" selected":""}>#${esc(p.nr)} ${esc(p.last || p.first)}</option>`).join("")
+    + (sel && !player(team, sel) ? `<option value="${esc(sel)}" selected>#${esc(sel)} ?</option>` : "");
+}
+
+function renderTeam(){
+  const team = T();
+  document.querySelectorAll("#sideSeg button").forEach(b => b.classList.toggle("on", b.dataset.side === S.side));
+  $("#teamName").value = team.name;
+  // maalivahdit
+  $("#gk").innerHTML = ["Aloittava (jos tiedossa)","Varamaalivahti"].map((lab,i) => `<div class="slot"><label>${lab}</label><select data-gk="${i}">${playerOptions(team, team.goalies[i], p => posGroup(p)==="MV")}</select></div>`).join("");
+  // kentät
+  const used = {};
+  team.lines.forEach(L => [...L.d, ...L.f].forEach(n => n && (used[n] = (used[n]||0)+1)));
+  team.goalies.forEach(n => n && (used[n] = (used[n]||0)+1));
+  const kp = team.players.filter(p => posGroup(p) === "KP").length;
+  $("#lineNote").innerHTML = !team.lines.length
+    ? `<div class="notice">Kentällisiä ei ole merkitty, joten kokoonpano kuulutetaan pelipaikoittain${kp ? ` (${kp} pelaajaa on merkitty vain kenttäpelaajaksi)` : ""}. Jos kentät ovat tiedossa, lisää ne käsin (+ Kenttä) tai pöytäkirjan kuvasta.</div>` : "";
+  $("#lines").innerHTML = team.lines.map((L,li) => `
+    <div class="ln">
+      <h3>${li+1}. kenttä <button class="b s" data-delline="${li}" title="Poista kenttä">✕</button></h3>
+      <div class="slots">${SLOTS.map(([k,i,lab]) => {
+        const v = L[k][i];
+        return `<div class="slot ${k}"><label>${lab}</label><select data-line="${li}" data-k="${k}" data-i="${i}" class="${v && used[v]>1 ? "dup":""}">${playerOptions(team, v, p => posGroup(p) === (k==="d"?"P":"H") || posGroup(p)==="KP")}</select></div>`;
+      }).join("")}</div>
+    </div>`).join("");
+  const un = team.players.filter(p => p.nr && !used[p.nr]).sort(sortByNr);
+  const dups = Object.keys(used).filter(n => used[n] > 1);
+  $("#unassigned").innerHTML = (un.length && team.lines.length ?`<div class="small muted">Ei kentässä:</div><div class="chips">${un.map(p => `<span class="chip">#${esc(p.nr)} ${esc(p.last)} <span class="muted">${esc(posGroup(p))}</span></span>`).join("")}</div>` : "")
+    + (dups.length ? `<p class="small err">Sama pelaaja useammassa paikassa: ${dups.map(n => "#"+esc(n)).join(", ")}</p>` : "");
+  // pelaajat
+  $("#players").innerHTML = team.players.map((p,i) => `
+    <tr data-p="${i}">
+      <td class="nr"><input data-f="nr" value="${esc(p.nr)}" inputmode="numeric"></td>
+      <td><input data-f="first" value="${esc(p.first)}"></td>
+      <td><input data-f="last" value="${esc(p.last)}"></td>
+      <td><input data-f="say" value="${esc(p.say || "")}" placeholder="esim. Aaron Ramsei"></td>
+      <td class="pos"><select data-f="pos">${["MV","P","H","KP"].map(o => `<option${posGroup(p)===o?" selected":""}>${o}</option>`).join("")}</select></td>
+      <td class="role"><select data-f="captain">${["","C","A"].map(o => `<option value="${o}"${(p.captain||"")===o?" selected":""}>${o||"–"}</option>`).join("")}</select></td>
+      <td><button class="b s" data-delp="${i}" title="Poista">✕</button></td>
+    </tr>`).join("") || `<tr><td colspan="7" class="muted small">Ei pelaajia. Hae tulospalvelusta, liitä lista tai ota kuva pöytäkirjasta.</td></tr>`;
+}
+
+$("#tab-kokoonpanot").addEventListener("change", e => {
+  const t = e.target, team = T();
+  if (t.dataset.gk != null) team.goalies[+t.dataset.gk] = t.value;
+  else if (t.dataset.line != null) team.lines[+t.dataset.line][t.dataset.k][+t.dataset.i] = t.value;
+  else if (t.dataset.f) {
+    const p = team.players[+t.closest("tr").dataset.p];
+    const old = p.nr;
+    p[t.dataset.f] = t.dataset.f === "nr" ? normNr(t.value) : t.value.trim();
+    if (t.dataset.f === "nr" && old && old !== p.nr) { // päivitä viittaukset
+      team.lines.forEach(L => ["d","f"].forEach(k => L[k] = L[k].map(n => n === old ? p.nr : n)));
+      team.goalies = team.goalies.map(n => n === old ? p.nr : n);
+    }
+  } else return;
+  save(); renderTeam();
+});
+$("#tab-kokoonpanot").addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  const team = T();
+  if (t.dataset.delline != null) { team.lines.splice(+t.dataset.delline, 1); save(); renderTeam(); }
+  if (t.dataset.delp != null) { team.players.splice(+t.dataset.delp, 1); save(); renderTeam(); }
+});
+$("#btnAddPlayer").onclick = () => { T().players.push({nr:"", first:"", last:"", pos:"KP", captain:""}); save(); renderTeam(); const ins = document.querySelectorAll("#players td.nr input"); ins[ins.length-1]?.focus(); };
+$("#btnBulk").onclick = () => { const b = $("#bulkBox"); b.style.display = b.style.display === "none" ? "block" : "none"; };
+$("#btnBulkAdd").onclick = () => {
+  const team = T(); let n = 0;
+  for (const raw of $("#bulkText").value.split(/\n/)) {
+    const toks = raw.trim().replace(/^#/, "").split(/[\s,;]+/).filter(Boolean);
+    if (!toks.length || !/^\d+$/.test(toks[0])) continue;
+    const nr = normNr(toks.shift());
+    let pos = "", cap = "";
+    while (toks.length && /^(MV|P|H|KP|C|A|\(C\)|\(A\))$/i.test(toks[toks.length-1])) {
+      const t = toks.pop().toUpperCase().replace(/[()]/g, "");
+      if (t === "C" || t === "A") cap = t; else pos = t;
+    }
+    const first = titleCase(toks.length > 1 ? toks.slice(0,-1).join(" ") : "");
+    const last = titleCase(toks[toks.length-1] || "");
+    upsert(team, {nr, first, last, pos: pos || "KP", captain: cap});
+    n++;
+  }
+  team.players.sort(sortByNr);
+  $("#bulkText").value = ""; $("#bulkBox").style.display = "none";
+  setOcr(`<span class="ok">${n} pelaajaa lisätty/päivitetty.</span>`);
+  save(); renderTeam();
+};
+function upsert(team, np){
+  const p = player(team, np.nr);
+  if (!p) { team.players.push(np); return; }
+  for (const k of ["first","last","captain"]) if (np[k]) p[k] = np[k];
+  if (np.pos && np.pos !== "KP") p.pos = np.pos;
+}
+
+// ---- kuva
+fetch("/api/status").then(r => r.json()).then(s => { if (!s.ocr) $("#photo").closest("label").title = "Vaatii ANTHROPIC_API_KEY-asetuksen palvelimella"; }).catch(()=>{});
+$("#photo").onchange = async e => {
+  const file = e.target.files[0]; e.target.value = "";
+  if (!file) return;
+  setOcr('<span class="spin"></span> Luetaan pöytäkirjaa kuvasta… (voi kestää noin minuutin)');
+  try {
+    const dataUrl = await shrink(file, 2400);
+    const r = await api("/api/ocr", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({image: dataUrl})});
+    const msgs = [];
+    for (const side of ["home","away"]) {
+      const o = r[side]; if (!o || (!o.players.length && !o.lines.length)) continue;
+      const team = S.teams[side];
+      if (!team.name && o.name) team.name = o.name;
+      o.players.forEach(p => upsert(team, {nr: normNr(p.number), first: titleCase(p.first_name), last: titleCase(p.last_name), pos: p.position || "KP", captain: p.captain}));
+      team.players.sort(sortByNr);
+      if (o.lines.length) {
+        team.lines = o.lines.map(l => ({d: [0,1].map(i => normNr(l.defense[i])), f: [0,1,2].map(i => normNr(l.forwards[i]))}));
+        team.hasLines = true;
+      }
+      if (o.goalies.length) team.goalies = [normNr(o.goalies[0]), normNr(o.goalies[1])];
+      msgs.push(`${side === "home" ? "Koti" : "Vieras"} (${esc(o.name || team.name)}): ${o.players.length} pelaajaa, ${o.lines.length} kenttää`);
+    }
+    save(); renderHeader(); renderTeam();
+    setOcr(msgs.length ? `<span class="ok">Kuvasta luettu – ${msgs.join("; ")}.</span> <b>Tarkista tiedot.</b>${r.notes ? `<br><span class="warn">Huom: ${esc(r.notes)}</span>` : ""}`
+                       : `<span class="warn">Kuvasta ei löytynyt kokoonpanoja.</span> ${esc(r.notes||"")}`);
+  } catch(err){ setOcr(`<span class="err">${esc(err.message)}</span>`); }
+};
+function shrink(file, max){
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const s = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas"); c.width = Math.round(img.width*s); c.height = Math.round(img.height*s);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg", 0.88));
+    };
+    img.onerror = () => rej(new Error("Kuvaa ei voitu avata."));
+    img.src = url;
+  });
+}
+
+// ---------------------------------------------------------------- kuulutus (Jääkiekkoliiton kuulutusohje, kotimaiset ottelut 28.08.2023)
+const PH = {
+  fi: {home:"Kotijoukkue", away:"Vierasjoukkue", nr:"numero", and:"ja", sep:": ",
+    gk:["Maalivahti","Maalivahdit"], skaters:["Kenttäpelaaja","Kenttäpelaajat"], moreSkaters:["Lisäksi kenttäpelaaja","Lisäksi kenttäpelaajat"],
+    role:{P:["Puolustaja","Puolustajat"], H:["Hyökkääjä","Hyökkääjät"]},
+    ord:["Ensimmäinen","Toinen","Kolmas","Neljäs","Viides","Kuudes"], line:o => `${o} kenttä`,
+    h:{welcome:"Tervetuloa", gk:"Maalivahdit", sk:"Kenttäpelaajat", coach:"Päävalmentaja", refs:"Tuomarit"},
+    coach:"Päävalmentaja", empty:"Joukkueella ei ole vielä kokoonpanoa. Lisää pelaajat välilehdellä 2."},
+  en: {home:"The home team", away:"The visiting team", nr:"number", and:"and", sep:": ",
+    gk:["Goaltender","Goaltenders"], skaters:["Skater","Skaters"], moreSkaters:["Also dressed","Also dressed"],
+    role:{P:["Defense","Defense"], H:["Forwards","Forwards"]},
+    ord:["First","Second","Third","Fourth","Fifth","Sixth"], line:o => `${o} line`,
+    h:{welcome:"Welcome", gk:"Goaltenders", sk:"Skaters", coach:"Head coach", refs:"Officials"},
+    coach:"Head coach", empty:"No lineup yet. Add players on tab 2."},
+};
+// Lohko: näytettävä HTML + puhuttavat osat (segs). Nimet merkitään fi:true → ääntyvät suomeksi myös englanniksi.
+function Blk(h, line){ return {h, line, html:"", segs:[]}; }
+function txt(b, s){ b.html += esc(s); const l = b.segs[b.segs.length-1]; if (l && !l.fi && !l.brk) l.t += s; else b.segs.push({t:s}); }
+function nameSeg(b, shown, said){ b.html += esc(shown); b.segs.push({t: said || shown, fi:true}); }
+function num(b, n){ b.html += `<b>${esc(n)}</b>`; txt(b, ""); const l = b.segs[b.segs.length-1]; l.t += n; }
+function br(b, ms){ b.html += "<br>"; b.segs.push({brk: ms || 450}); }
+// Pelaaja: kokoonpanossa ohjeen mukaan "35, Kai Öyry" (bare), tapahtumissa "numero 35, Kai Öyry"
+function whoInto(b, P, team, nr, bare){
+  const p = player(team, nr);
+  if (!bare) txt(b, P.nr + " ");
+  num(b, normNr(nr));
+  if (!p) return;
+  const shown = [S.opts.first ? p.first : "", p.last].filter(Boolean).join(" ");
+  if (shown || p.say) { txt(b, ", "); nameSeg(b, shown || p.say, p.say); }
+}
+function listInto(b, P, lead, team, nrs, bare){
+  if (!nrs.length) return false;
+  if (b.segs.length) br(b);
+  txt(b, lead[nrs.length > 1 ? 1 : 0] + P.sep);
+  nrs.forEach((n, i) => { if (i > 0) txt(b, i === nrs.length-1 ? ` ${P.and} ` : ", "); whoInto(b, P, team, n, bare); });
+  txt(b, ".");
+  return true;
+}
+const fullName = p => [titleCase(p.first), titleCase(p.last)].filter(Boolean).join(" ");
+function greeting(lang){
+  const h = new Date().getHours();
+  if (lang === "en") return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+  return h < 11 ? "Hyvää huomenta" : h < 17 ? "Hyvää iltapäivää" : "Hyvää iltaa";
+}
+function welcomeBlock(lang){
+  const P = PH[lang], b = Blk(P.h.welcome), fi = lang === "fi";
+  const [level, ...rest] = (S.game?.level || "").split(",").map(s => s.trim()).filter(Boolean);
+  const lohko = rest.join(", ");
+  const home = S.teams.home.name, away = S.teams.away.name;
+  if (fi) {
+    txt(b, `${greeting(lang)} arvoisa yleisö ja tervetuloa seuraamaan `);
+    if (level) txt(b, `${level} -sarjan${lohko ? ` ${lohko.toLowerCase().replace(/^lohko\s*/, "lohkon ")}` : ""} `);
+    txt(b, "ottelua" + (S.hall ? ` ${S.hall}` : "") + ".");
+    br(b); txt(b, "Seuraavassa ottelussa pelaavat "); nameSeg(b, home); txt(b, " ja "); nameSeg(b, away); txt(b, ".");
+    br(b); txt(b, "Joukkueiden kokoonpanot ovat:");
+  } else {
+    txt(b, `${greeting(lang)}, ladies and gentlemen, and welcome to this ${level ? level + (lohko ? `, ${lohko},` : "") + " " : ""}game`);
+    if (EV?.arena) { txt(b, " at "); nameSeg(b, EV.arena); }
+    txt(b, "."); br(b); txt(b, "Today's game features "); nameSeg(b, home); txt(b, " and "); nameSeg(b, away); txt(b, ".");
+    br(b); txt(b, "The lineups are as follows:");
+  }
+  return b;
+}
+function teamBlocks(side, lang){
+  const P = PH[lang], team = S.teams[side], blocks = [];
+  const order = S.opts.fwd ? ["H","P"] : ["P","H"];
+  const head = Blk("");
+  head.html = `<span class="big">${esc(side === "home" ? P.home : P.away)} <b>${esc(team.name || "")}</b></span>`;
+  head.segs = [{t:(side === "home" ? P.home : P.away) + ", "}, {t: team.name || "", fi:true}, {t:"."}];
+  blocks.push(head);
+
+  const used = new Set();
+  // maalivahdit: valittu aloittava/vara ensin, sitten muut
+  const gks = [...team.goalies.filter(Boolean), ...team.players.filter(p => p.nr && posGroup(p) === "MV").sort(sortByNr).map(p => p.nr)]
+    .filter((n, i, a) => a.indexOf(n) === i);
+  gks.forEach(n => used.add(n));
+  const gk = Blk(P.h.gk);
+  if (listInto(gk, P, P.gk, team, gks, true)) blocks.push(gk);
+
+  let lineNo = 0;
+  team.lines.forEach(L => {
+    const grp = {P: L.d.filter(Boolean), H: L.f.filter(Boolean)};
+    if (!grp.P.length && !grp.H.length) return;
+    [...grp.P, ...grp.H].forEach(n => used.add(n));
+    const title = P.line(P.ord[lineNo] || `${lineNo+1}.`); lineNo++;
+    const b = Blk(title, true);
+    b.segs.push({t: title + "."}, {brk: 350});
+    order.forEach(k => listInto(b, P, P.role[k], team, grp[k], true));
+    blocks.push(b);
+  });
+  // kenttäpelaajat numerojärjestyksessä (ohje), kenttien jälkeen vain jos "Muut pelaajat"
+  if (!lineNo || S.opts.extra) {
+    const rest = team.players.filter(p => p.nr && !used.has(p.nr)).sort(sortByNr).map(p => p.nr);
+    const b = Blk(P.h.sk);
+    if (listInto(b, P, lineNo ? P.moreSkaters : P.skaters, team, rest, true)) blocks.push(b);
+  }
+  if (S.opts.coach) {
+    const c = team.staff.filter(s => /valmentaja/i.test(s.role) && !/mv-|fysiikka/i.test(s.role));
+    const head = c.find(s => /vastuu|pää/i.test(s.role)) || c[0];
+    if (head) { const b = Blk(P.h.coach); txt(b, P.coach + P.sep); nameSeg(b, fullName(head)); txt(b, "."); blocks.push(b); }
+  }
+  return blocks;
+}
+function refsBlock(lang){
+  const refs = EV?.referees || [];
+  if (!refs.length) return null;
+  const fi = lang === "fi", P = PH[lang], b = Blk(P.h.refs);
+  const groups = [
+    {re:/pää/i, fi:["päätuomari","päätuomarit"], en:["referee","referees"]},
+    {re:/^erotuomari/i, fi:["erotuomari","erotuomarit"], en:["referee","referees"]},
+    {re:/linja/i, fi:["linjatuomari","linjatuomarit"], en:["linesman","linesmen"]},
+  ];
+  txt(b, fi ? "Ottelun tuomarit ovat: " : "Tonight's officials: ");
+  let first = true;
+  for (const g of groups) {
+    const list = refs.filter(r => g.re.test(r.role));
+    if (!list.length) continue;
+    if (!first) txt(b, fi ? ", " : "; ");
+    first = false;
+    txt(b, (fi ? g.fi : g.en)[list.length > 1 ? 1 : 0] + " ");
+    list.forEach((r, i) => { if (i) txt(b, ` ${P.and} `); nameSeg(b, fullName(r)); });
+  }
+  txt(b, ".");
+  return b;
+}
+function buildScript(sideSel, lang){
+  const blocks = [];
+  if (S.opts.welcome) blocks.push(welcomeBlock(lang));
+  const sides = sideSel === "both" ? ["away", "home"] : [sideSel];   // ohje: vierasjoukkue ensin
+  sides.forEach(side => blocks.push(...teamBlocks(side, lang)));
+  if (S.opts.refs) { const r = refsBlock(lang); if (r) blocks.push(r); }
+  return blocks;
+}
+let BLOCKS = [];
+function renderScript(){
+  document.querySelectorAll("#annSeg button").forEach(b => b.classList.toggle("on", b.dataset.side === S.ann));
+  document.querySelectorAll("#langSeg button").forEach(b => b.classList.toggle("on", b.dataset.lang === S.lang));
+  ["welcome","coach","refs","first","extra","fwd"].forEach(k => $("#opt" + k[0].toUpperCase() + k.slice(1)).checked = !!S.opts[k]);
+  const anyLines = ["home","away"].some(s => S.teams[s].lines.some(L => [...L.d,...L.f].some(Boolean)));
+  document.querySelectorAll(".lineopt").forEach(el => el.style.display = anyLines ? "" : "none");
+  $("#hall").value = S.hall || "";
+  $("#rate").value = S.rate;
+  if (S.game?.id && !EV) fetchEvents();   // tuomarit ja halli tulospalvelusta
+  BLOCKS = buildScript(S.ann, S.lang);
+  const sides = S.ann === "both" ? ["away","home"] : [S.ann];
+  $("#script").innerHTML = sides.some(s => S.teams[s].players.length)
+    ? BLOCKS.map((b,i) => `<div class="blk" data-b="${i}"><div class="txt">${b.h ? `<h4>${esc(b.h)}</h4>` : ""}${b.html}</div><button class="b s" data-say="${i}" title="Lue ääneen">🔊</button></div>`).join("")
+    : `<p class="muted" style="font-size:16px">${esc(PH[S.lang].empty)}</p>`;
+  renderVoices();
+}
+$("#annSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; stopAll(); S.ann = b.dataset.side; save(); renderScript(); };
+$("#langSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; stopAll(); S.lang = b.dataset.lang; save(); renderScript(); };
+["Welcome","Coach","Refs","First","Extra","Fwd"].forEach(k => $("#opt"+k).onchange = e => { S.opts[k.toLowerCase()] = e.target.checked; save(); renderScript(); });
+$("#hall").onchange = e => { S.hall = e.target.value.trim(); save(); renderScript(); };
+$("#rate").onchange = e => { S.rate = +e.target.value; save(); };
+
+// ---- ääni: Azure Speech palvelimen kautta, varalla selaimen puhesynteesi
+let TTS = false, ENGINE = "", AZ_VOICES = {fi:[], en:[]};
+const synth = window.speechSynthesis;
+const player1 = new Audio();
+const audioCache = new Map();   // avain → Promise<objectURL>
+let playToken = 0;
+
+async function initTts(){
+  try {
+    const s = await api("/api/status");
+    TTS = !!s.tts; ENGINE = s.engine || "";
+    if (TTS) AZ_VOICES = await api("/api/voices");
+  } catch {}
+  renderVoices();
+}
+function curVoice(){ return S.voices[S.lang] || ""; }
+// Selaimen äänistä vain laadukkaimmat (enintään 2). Leikkiäänet ja heikot Eloquence-äänet pois.
+const NOVELTY = /^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Junior|Ralph|Fred|Kathy|Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley|Huonoja uutisia|Hyviä uutisia|Kellot|Kuiskaus|Kuplat|Narri|Plääh|Sellot|Supertähti|Trinoidit|Urut)\b/i;
+function bestBrowserVoices(lang){
+  const want = lang === "en" ? /^en-(US|GB)/i : /^fi/i;
+  const score = v => /Online \(Natural\)|Neural/i.test(v.name) ? 4 : /Premium|Enhanced|Parannettu|Siri/i.test(v.name) ? 3 : /Google/i.test(v.name) ? 2 : 1;
+  const list = synth.getVoices().filter(v => want.test(v.lang) && !NOVELTY.test(v.name)).sort((a, b) => score(b) - score(a));
+  // Neuroäänet (Edge: "Microsoft Noora/Harri/Selma Online (Natural)") – näytetään vain ne, jos löytyy
+  const natural = list.filter(v => score(v) === 4);
+  if (lang === "en") { const multi = natural.filter(v => /Multilingual/i.test(v.name)); if (multi.length) return multi.slice(0, 2); }
+  return natural.length ? natural.slice(0, 3) : list.slice(0, 2);
+}
+const hasNatural = lang => bestBrowserVoices(lang).some(v => /Online \(Natural\)|Neural/i.test(v.name));
+function renderVoices(){
+  const sel = $("#voice");
+  if (TTS) {
+    const list = AZ_VOICES[S.lang] || [];
+    if (!list.some(v => v.name === curVoice())) S.voices[S.lang] = list[0]?.name || "";
+    sel.innerHTML = list.map(v => `<option value="${esc(v.name)}"${v.name===curVoice()?" selected":""}>${esc(v.label)}</option>`).join("");
+    $("#voiceInfo").innerHTML = `${ENGINE === "piper" ? "Piper-neuroääni (paikallinen)" : "Azure-neuroääni"}${S.lang === "en" ? " – nimet luetaan aina suomalaisella lukijalla" : ""}. Nimen ääntämystä voi korjata pelaajalistan Ääntämys-sarakkeessa.`;
+    $("#btnPrep").style.display = "";
+  } else {
+    $("#btnPrep").style.display = "none";
+    if (!synth) { sel.innerHTML = ""; $("#voiceInfo").textContent = "Puhesynteesi ei ole käytössä – lue teksti ääneen itse."; return; }
+    const list = bestBrowserVoices(S.lang);
+    if (!list.some(v => v.name === curVoice())) S.voices[S.lang] = list[0]?.name || "";
+    sel.innerHTML = list.map(v => `<option value="${esc(v.name)}"${v.name===curVoice()?" selected":""}>${esc(v.name)} (${esc(v.lang)})</option>`).join("");
+    $("#voiceInfo").innerHTML = hasNatural(S.lang)
+      ? `<span class="ok">Microsoftin neuroääni (Edge).</span>${S.lang === "en" ? " Nimet luetaan suomenkielisellä äänellä." : ""}`
+      : '<span class="warn">Käytössä selaimen perusääni, jonka ääntäminen on heikkoa.</span> <b>Avaa sovellus Microsoft Edge -selaimessa</b>: siinä ovat ilmaiseksi Microsoftin suomenkieliset neuroäänet (Noora, Harri, Selma). Vaihtoehtoisesti lisää palvelimelle Azure Speech -avain (README).';
+  }
+}
+if (synth) synth.onvoiceschanged = () => { if (!TTS) renderVoices(); };
+$("#voice").onchange = e => { S.voices[S.lang] = e.target.value; save(); };
+
+function ttsReq(b){ return {lang: S.lang, voice: curVoice(), rate: S.rate, segs: b.segs}; }
+function getAudio(b){
+  const req = ttsReq(b), key = JSON.stringify(req);
+  if (!audioCache.has(key)) {
+    const p = fetch("/api/tts", {method:"POST", headers:{"content-type":"application/json"}, body: key}).then(async r => {
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "Puhesynteesi epäonnistui");
+      return URL.createObjectURL(await r.blob());
+    });
+    p.catch(() => audioCache.delete(key));
+    audioCache.set(key, p);
+  }
+  return audioCache.get(key);
+}
+function playUrl(url, token){
+  return new Promise(res => {
+    if (token !== playToken) return res();
+    player1.src = url; player1.playbackRate = 1;
+    player1.onended = player1.onerror = () => res();
+    player1.onpause = () => { if (token !== playToken) res(); };
+    player1.play().catch(() => res());
+  });
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let playing = false;
+function ttsError(msg){ const h = `<span class="err">${esc(msg)}</span>`; $("#voiceInfo").innerHTML = h; $("#evInfo").innerHTML = h; }
+// Lukee lohkot peräkkäin; markFn(n) korostaa luettavan (n = -1 lopussa)
+async function speakSeq(blocks, markFn){
+  stopAll();
+  const token = ++playToken; playing = true;
+  try {
+    for (let n = 0; n < blocks.length; n++) {
+      if (token !== playToken) return;
+      markFn(n);
+      if (TTS) {
+        const url = await getAudio(blocks[n]);
+        if (blocks[n+1]) getAudio(blocks[n+1]).catch(() => {});  // esihaku
+        if (token !== playToken) return;
+        await playUrl(url, token);
+      } else await speakBrowser(blocks[n], token);
+      if (token !== playToken) return;
+      if (n < blocks.length-1) await sleep(500);
+    }
+  } catch (e) { ttsError(e.message); }
+  if (token === playToken) { playing = false; markFn(-1); drainQueue(); }
+}
+// Selaimen varaääni: englanninkielisessä kuulutuksessa nimet luetaan suomenkielisellä äänellä
+function speakBrowser(b, token){
+  if (!synth || token !== playToken) return Promise.resolve();
+  const main = synth.getVoices().find(v => v.name === curVoice());
+  const fiV = S.lang === "fi" ? main : bestBrowserVoices("fi")[0];
+  const runs = [];
+  for (const sg of b.segs) {
+    if (sg.brk || !sg.t) continue;
+    const fi = S.lang === "fi" || !!sg.fi;
+    if (runs.length && runs[runs.length-1].fi === fi) runs[runs.length-1].t += " " + sg.t; else runs.push({fi, t: sg.t});
+  }
+  return runs.reduce((p, r) => p.then(() => new Promise(res => {
+    if (token !== playToken) return res();
+    const v = r.fi ? fiV : main;
+    const u = new SpeechSynthesisUtterance(r.t.replace(/\s+/g, " "));
+    u.lang = v?.lang || (r.fi ? "fi-FI" : "en-US"); if (v) u.voice = v; u.rate = S.rate;
+    u.onend = u.onerror = () => res();
+    synth.speak(u);
+  })), Promise.resolve());
+}
+function stopAll(){ playToken++; playing = false; player1.pause(); if (synth) synth.cancel(); mark(-1); markEv(null); }
+function mark(i){ document.querySelectorAll("#script .blk").forEach(b => b.classList.toggle("cur", +b.dataset.b === i)); if (i >= 0) document.querySelector(`#script .blk[data-b="${i}"]`)?.scrollIntoView({block:"center", behavior:"smooth"}); }
+function speak(idxs){ speakSeq(idxs.map(i => BLOCKS[i]), n => mark(n < 0 ? -1 : idxs[n])); }
+$("#script").onclick = e => { const b = e.target.closest("[data-say]"); if (b) speak([+b.dataset.say]); };
+$("#btnSpeakAll").onclick = () => speak(BLOCKS.map((_,i) => i));
+$("#btnStop").onclick = stopAll;
+$("#btnPrep").onclick = async () => {
+  const btn = $("#btnPrep"); btn.disabled = true;
+  let done = 0;
+  try {
+    await Promise.all(BLOCKS.map(b => getAudio(b).then(() => { btn.textContent = `Valmistellaan ${++done}/${BLOCKS.length}…`; })));
+    $("#voiceInfo").innerHTML = '<span class="ok">Ääni valmiina – toisto alkaa heti.</span>';
+  } catch (e) { $("#voiceInfo").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+  btn.disabled = false; btn.textContent = "⬇ Valmistele ääni";
+};
+
+// ---------------------------------------------------------------- tapahtumat (pelikuulutukset, Jääkiekkoliiton kuulutusohje)
+const ORD_FI = ["ensimmäinen","toinen","kolmas","neljäs","viides","kuudes","seitsemäs","kahdeksas","yhdeksäs","kymmenes",
+  "yhdestoista","kahdestoista","kolmastoista","neljästoista","viidestoista","kuudestoista","seitsemästoista","kahdeksastoista","yhdeksästoista","kahdeskymmenes"];
+const ORD_EN = ["first","second","third","fourth","fifth","sixth","seventh","eighth","ninth","tenth",
+  "eleventh","twelfth","thirteenth","fourteenth","fifteenth","sixteenth","seventeenth","eighteenth","nineteenth","twentieth"];
+const ordinal = (n, lang) => (lang === "fi" ? ORD_FI : ORD_EN)[n-1] || `${n}.`;
+const EVP = {
+  fi: {period:p => p > 3 ? "Jatkoaika" : `${p}. erä`, clock:s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`,
+    say:s => `${Math.floor(s/60)}.${String(s%60).padStart(2,"0")}`,
+    label:{Goal:"Maali", Penalty:"Rangaistus", PG:"Rangaistukset", Timeout:"Aikalisä", GK:"Maalivahti", PX:"Voimasuhde"},
+    gtype:{YV:"ylivoimalla", AV:"alivoimalla", TM:"tyhjään maaliin", RL:"rangaistuslaukauksesta"},
+    pen:m => ({2:"2 minuuttia", 4:"2 + 2 minuuttia", 5:"viisi minuuttia", 10:"10 minuutin käytösrangaistus", 20:"pelirangaistus", 25:"ottelurangaistus"}[m] || `${m} minuuttia`)},
+  en: {period:p => p > 3 ? "Overtime" : `Period ${p}`, clock:s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`,
+    say:s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`,
+    label:{Goal:"Goal", Penalty:"Penalty", PG:"Penalties", Timeout:"Timeout", GK:"Goaltender", PX:"Strength"},
+    gtype:{YV:"power play", AV:"short-handed", TM:"empty net", RL:"penalty shot"},
+    pen:m => ({2:"2 minutes", 4:"2 plus 2 minutes", 5:"5 minutes", 10:"a 10-minute misconduct", 20:"a game misconduct", 25:"a match penalty"}[m] || `${m} minutes`)},
+};
+let EV = null, evTimer = null, evTried = false;
+const evQueue = [];   // [{key, time}] – time = tapahtuman peliaika
+let ITEMS = [];       // kuulutettavat kohteet (samanaikaiset rangaistukset yhdistetty)
+const evGroup = t => t && t.startsWith("GK") ? "GK" : t === "PG" ? "Penalty" : t;
+
+function evTeamName(side){ return S.teams[side]?.name || (EV ? EV[side] : "") || ""; }
+function evWho(b, P, side, pp){
+  if (!pp) return;
+  const team = S.teams[side];
+  if (pp.nr && player(team, pp.nr)) return whoInto(b, P, team, pp.nr, false);
+  if (pp.nr) { txt(b, P.nr + " "); num(b, pp.nr); }
+  const name = fullName(pp);
+  if (name) { if (pp.nr) txt(b, ", "); nameSeg(b, name); }
+}
+function evList(b, P, side, list){ list.forEach((pp, i) => { if (i) txt(b, i === list.length-1 ? ` ${P.and} ` : ", "); evWho(b, P, side, pp); }); }
+
+// Rakentaa kohteet: samaan aikaan tulleet rangaistukset yhdeksi kuulutukseksi, vierasjoukkue ensin
+// ---- voimasuhteet: rangaistusten päättyminen (ohjeen kohta F)
+// Pieni rangaistus 2 min (päättyy, jos vastustaja tekee maalin ylivoimalla), 2+2 min, iso 5 min.
+// Käytös-, peli- ja ottelurangaistukset (10/20/25) eivät tässä mallissa muuta voimasuhdetta.
+// Enintään kaksi pelaajaa voi olla vajaana kerrallaan; kolmas rangaistus alkaa ensimmäisen päättyessä.
+const PEN_DUR = {2: {d:120, kind:"minor"}, 4: {d:240, kind:"double"}, 5: {d:300, kind:"major"}};
+function computeStrength(events, now){
+  const act = {home: [], away: []}, pend = {home: [], away: []};
+  const out = [], penState = {};
+  const str = s => 5 - Math.min(2, act[s].length);
+  const snap = () => [str("home"), str("away")];
+  const transition = (before, after, time, tag) => {
+    if (before[0] === after[0] && before[1] === after[1]) return;
+    const [h, a] = after, [h0, a0] = before;
+    let msg = null;
+    if (h === 5 && a === 5) msg = {kind: "full"};
+    else if (h === a) msg = {kind: "even"};
+    else if (h === 5 && h0 < 5) msg = {kind: "teamFull", side: "home"};
+    else if (a === 5 && a0 < 5) msg = {kind: "teamFull", side: "away"};
+    else if (h < 5 && a < 5) msg = {kind: "short", side: h < a ? "home" : "away"};   // esim. 3-3 → 4-3: "Vieras vajaalukuinen"
+    if (msg) out.push({key: `PX_${time}_${tag}`, type: "PX", time, before, after, ...msg});
+  };
+  const startPending = (side, t) => { const p = pend[side].shift(); if (p) act[side].push({...p, end: t + p.d}); };
+  // Samaan aikaan päättyvät rangaistukset käsitellään yhdessä → yksi kuulutus (esim. 4-4 → 5-5)
+  const advance = to => {
+    for (;;) {
+      const ends = ["home", "away"].flatMap(s => act[s].map(p => p.end)).filter(e => e <= to);
+      if (!ends.length) return;
+      const T = Math.min(...ends), before = snap(), tags = [];
+      for (const s of ["home", "away"]) {
+        const done = act[s].filter(p => p.end === T);
+        done.forEach(p => { act[s].splice(act[s].indexOf(p), 1); tags.push(`${s}${p.start}`); startPending(s, T); });
+      }
+      transition(before, snap(), T, tags.join("_"));
+    }
+  };
+  const byTime = {};
+  events.forEach(e => (byTime[e.time] ||= []).push(e));
+  for (const t of Object.keys(byTime).map(Number).sort((a, b) => a - b)) {
+    advance(t);
+    const list = byTime[t];
+    // maalit ensin: ylivoimamaali päättää vajaan joukkueen ensimmäisenä päättyvän pienen rangaistuksen
+    for (const e of list.filter(x => x.type === "Goal")) {
+      const opp = e.side === "home" ? "away" : "home";
+      if (str(opp) >= str(e.side)) continue;
+      const minors = act[opp].filter(p => p.kind !== "major").sort((a, b) => a.end - b.end);
+      if (!minors.length) continue;
+      const before = snap(), p = minors[0];
+      if (p.kind === "double" && p.end - t > 120) { p.end = t + 120; p.kind = "minor"; continue; }
+      act[opp].splice(act[opp].indexOf(p), 1);
+      startPending(opp, t);
+      transition(before, snap(), t, `g${opp}${e.key}`);
+    }
+    const pens = list.filter(x => x.type === "Penalty");
+    if (pens.length) {
+      const before = snap();
+      for (const e of pens) {
+        const dur = PEN_DUR[e.minutes];
+        if (!dur) continue;
+        const p = {start: t, d: dur.d, kind: dur.kind};
+        if (act[e.side].length < 2) act[e.side].push({...p, end: t + p.d}); else pend[e.side].push(p);
+      }
+      penState[t] = {before, after: snap()};
+    }
+  }
+  advance(now);
+  return {items: out, penState};
+}
+function buildItems(events){
+  const items = [], pens = {};
+  for (const e of events) {
+    if (e.type === "Penalty") { (pens[e.time] ||= []).push(e); continue; }
+    items.push({key: e.key, type: e.type, time: e.time, period: e.period, events: [e], silent: e.type === "GK_start" && !(e.previous && e.previous.nr) && !(e.time > 0)});
+  }
+  const st = computeStrength(events, EV?.gameTime || 0);
+  for (const [t, list] of Object.entries(pens)) {
+    list.sort((a, b) => (a.side === "away" ? 0 : 1) - (b.side === "away" ? 0 : 1));
+    items.push({key: list.length > 1 ? `PG_${t}_${list.length}` : list[0].key, type: list.length > 1 ? "PG" : "Penalty", time: +t, period: list[0].period, events: list, strength: st.penState[t]});
+  }
+  const plen = (EV?.periodLen || 20) * 60;
+  st.items.forEach(x => items.push({...x, period: Math.min(4, Math.floor(Math.max(0, x.time - 1) / plen) + 1), events: [x], ord: 1}));
+  return items.sort((a, b) => a.time - b.time || (a.ord || 0) - (b.ord || 0) || a.key.localeCompare(b.key));
+}
+function penaltyInto(b, P, E, e, fi){
+  nameSeg(b, evTeamName(e.side)); txt(b, ", ");
+  evWho(b, P, e.side, e.player);
+  if (e.minutes) txt(b, ", " + E.pen(e.minutes));
+  const reason = fi ? e.reasonFI : e.reasonEN;
+  if (reason) txt(b, (fi ? ", syy " : " for ") + (fi ? reason.charAt(0).toLowerCase() + reason.slice(1) : reason.toLowerCase()).replace(/\s+-\s+/g, ", "));
+  if (e.server) { txt(b, fi ? ", rangaistuksen kärsii " : ", served by "); evWho(b, P, e.side, e.server); }
+}
+function itemBlock(it, lang){
+  const P = PH[lang], E = EVP[lang], fi = lang === "fi";
+  const e = it.events[0];
+  const b = Blk(`${E.label[it.type] || E.label[evGroup(it.type)] || it.type} · ${E.period(it.period)} · ${E.clock(it.time)}`);
+  b.kind = evGroup(it.type);
+  const time = () => txt(b, (fi ? "Aika " : "Time: ") + E.say(it.time) + ".");
+  if (it.type === "Goal") {
+    // ”HYRI, neljäs maali (ylivoimalla), maalintekijä #99 AA, syöttäjät #88 BB ja #77 CC, aika 36:12”
+    const n = e.side === "home" ? e.home : e.away;
+    const gt = E.gtype[e.goalType] || (fi ? e.specialFI : e.specialEN).toLowerCase();
+    if (fi) { nameSeg(b, evTeamName(e.side)); txt(b, `, ${ordinal(n, "fi")} maali${gt ? ", " + gt : ""}.`); }
+    else { txt(b, `${ordinal(n, "en").replace(/^./, c => c.toUpperCase())} goal for `); nameSeg(b, evTeamName(e.side)); txt(b, (gt ? `, ${gt}` : "") + "."); }
+    br(b, 300); txt(b, fi ? "Maalintekijä " : "Scored by "); evWho(b, P, e.side, e.scorer); txt(b, ".");
+    if (e.assists.length) { br(b, 300); txt(b, fi ? (e.assists.length > 1 ? "Syöttäjät " : "Syöttäjä ") : "Assisted by "); evList(b, P, e.side, e.assists); txt(b, "."); }
+    br(b, 300); time();
+  } else if (it.type === "Penalty" || it.type === "PG") {
+    // ”HYRI, #11 PP, 2 minuuttia, syy väkivaltaisuus, aika 11:15” – useita: vieras ensin, lopuksi aika ja voimasuhde
+    it.events.forEach((pe, i) => { if (i) br(b, 350); penaltyInto(b, P, E, pe, fi); txt(b, i === it.events.length-1 ? "," : "."); });
+    txt(b, " "); txt(b, (fi ? "aika " : "time ") + E.say(it.time));
+    // ohjeen taulukko: jos rangaistus tasaa voimasuhteen (5-5 → 4-4, 5-4 → 4-4 …), lisätään "joukkueet tasalukuiset"
+    const sv = it.strength;
+    if (sv && sv.after[0] === sv.after[1] && sv.after[0] < 5 && (sv.before[0] !== sv.after[0] || sv.before[1] !== sv.after[1])) txt(b, fi ? ", joukkueet tasalukuiset" : ", teams at even strength");
+    txt(b, ".");
+  } else if (it.type === "PX") {
+    // ”Koti täysilukuinen” / ”Joukkueet täysilukuiset” / ”Joukkueet tasalukuiset” / ”Vieras vajaalukuinen”
+    b.h = `${fi ? "Voimasuhde" : "Strength"} ${it.before.join("–")} → ${it.after.join("–")} · ${E.period(it.period)} · ${E.clock(it.time)}`;
+    if (it.kind === "full") txt(b, fi ? "Joukkueet täysilukuiset." : "Both teams at full strength.");
+    else if (it.kind === "even") txt(b, fi ? "Joukkueet tasalukuiset." : "Teams at even strength.");
+    else if (it.kind === "teamFull") { nameSeg(b, evTeamName(it.side)); txt(b, fi ? " täysilukuinen." : " at full strength."); }
+    else { nameSeg(b, evTeamName(it.side)); txt(b, fi ? " vajaalukuinen." : " shorthanded."); }
+  } else if (it.type === "Timeout") {
+    if (fi) { nameSeg(b, evTeamName(e.side)); txt(b, ", aikalisä."); } else { txt(b, "Timeout, "); nameSeg(b, evTeamName(e.side)); txt(b, "."); }
+  } else if (b.kind === "GK") {
+    // ”HYRI vaihtaa maalivahtia. Maalilta pois #30 NN ja maalille #1 MM. Aika”
+    const g = e.goalie && e.goalie.nr ? e.goalie : null, prev = e.previous && e.previous.nr ? e.previous : null;
+    if (it.silent) { txt(b, fi ? "Aloittava maalivahti: " : "Starting goaltender: "); nameSeg(b, evTeamName(e.side)); txt(b, ", "); evWho(b, P, e.side, g); txt(b, "."); b.silent = true; }
+    else {
+      nameSeg(b, evTeamName(e.side)); txt(b, fi ? " vaihtaa maalivahtia." : " changes goaltenders.");
+      if (prev) { br(b, 300); txt(b, fi ? "Maalilta pois " : "Out: "); evWho(b, P, e.side, prev); txt(b, g ? (fi ? " ja maalille " : ". In: ") : "."); }
+      else if (g) { br(b, 300); txt(b, fi ? "Maalille " : "In: "); }
+      if (g) { evWho(b, P, e.side, g); txt(b, "."); }
+      br(b, 300); time();
+    }
+  } else { b.html += esc(e.type || "?"); b.segs = []; b.silent = true; }
+  return b;
+}
+
+// ---- muut ohjeen kuulutukset
+function manualBlock(kind, lang){
+  const fi = lang === "fi", P = PH[lang];
+  const b = Blk({respect:"Kunnioita peliä", min1:"Erää jäljellä", min2:"Erää jäljellä", min3:"Erää jäljellä", saves:"Torjunnat", crowd:"Yleisömäärä", final:"Lopputulos"}[kind]);
+  if (kind === "respect") txt(b, fi ? "Jääkiekko-ottelussa ei ole sijaa epäasialliselle käytökselle. Muistetaan hyvä käytös kaukalossa ja sen ulkopuolella!"
+                                    : "There is no place for inappropriate behaviour at a hockey game. Let's remember good conduct on and off the ice!");
+  if (kind === "min1") txt(b, fi ? "Ensimmäistä erää jäljellä yksi minuutti." : "One minute remaining in the first period.");
+  if (kind === "min2") txt(b, fi ? "Toista erää jäljellä yksi minuutti." : "One minute remaining in the second period.");
+  if (kind === "min3") txt(b, fi ? "Kolmatta erää jäljellä kaksi minuuttia." : "Two minutes remaining in the third period.");
+  if (!EV && ["saves","crowd","final"].includes(kind)) { b.html = '<span class="muted">Ei tietoja tulospalvelusta.</span>'; b.silent = true; return b; }
+  if (kind === "saves") {
+    // ohje: koti ensin – ”Koti #1 RR __ torjuntaa”, ”Vieras #30 ZZ __ torjuntaa”
+    const per = $("#savesPeriod").value;
+    const pw = fi ? ({1:"1. erässä", 2:"2. erässä", 3:"3. erässä", 4:"jatkoajalla", 0:"ottelussa"}[per]) : ({1:"in the first period", 2:"in the second period", 3:"in the third period", 4:"in overtime", 0:"in the game"}[per]);
+    txt(b, fi ? `Maalivahtien torjunnat ${pw}:` : `Goaltender saves ${pw}:`);
+    for (const side of ["home","away"]) for (const g of EV.saves[side] || []) {
+      const n = g.saves[per]; if (n == null) continue;
+      br(b, 400); nameSeg(b, evTeamName(side)); txt(b, ", "); evWho(b, P, side, g); txt(b, fi ? `, ${n} torjuntaa.` : `, ${n} saves.`);
+    }
+  }
+  if (kind === "crowd") txt(b, fi ? `Ottelun yleisömäärä on ${EV.spectators}.` : `Today's attendance is ${EV.spectators}.`);
+  if (kind === "final") {
+    const h = EV.homeGoals ?? 0, a = EV.awayGoals ?? 0;
+    txt(b, fi ? `Ottelu päättyi ${h === a ? "tasatulokseen" : "tulokseen"} ` : "The game has ended. Final score: ");
+    nameSeg(b, evTeamName("home")); txt(b, ` ${h}, `); nameSeg(b, evTeamName("away")); txt(b, ` ${a}.`);
+    br(b, 500); txt(b, fi ? "Kiitos yleisölle, joukkueille, tuomareille ja toimitsijoille." : "Thank you to the fans, the teams, the officials and the off-ice officials.");
+  }
+  return b;
+}
+document.querySelectorAll("[data-man]").forEach(btn => btn.onclick = () => {
+  const b = manualBlock(btn.dataset.man, S.lang);
+  $("#manPreview").innerHTML = `<div class="blk" id="manBlk"><div class="txt"><h4>${esc(b.h)}</h4>${b.html}</div></div>`;
+  if (!b.silent) speakSeq([b], n => $("#manBlk")?.classList.toggle("cur", n >= 0));
+});
+
+async function fetchEvents(){
+  if (!S.game || !S.game.id) { $("#evInfo").innerHTML = '<span class="warn">Valitse ottelu tulospalvelusta (välilehti 1). Tapahtumat luetaan tulospalvelun rajapinnasta.</span>'; return; }
+  evTried = true;
+  try {
+    const d = await api(`/api/events?gameid=${S.game.id}&season=${S.game.season || 0}`);
+    const firstLoad = S.ev.gameId !== S.game.id;
+    if (firstLoad) { S.ev.gameId = S.game.id; S.ev.seen = {}; S.ev.read = {}; }
+    const hadEV = !!EV;
+    EV = d; ITEMS = buildItems(d.events);
+    // Jo tapahtuneet merkitään nähdyiksi ensimmäisellä haulla, jotta niitä ei kuuluteta jälkikäteen
+    const fresh = ITEMS.filter(it => !S.ev.seen[it.key]);
+    fresh.forEach(it => S.ev.seen[it.key] = 1);
+    if (!firstLoad) fresh.filter(it => !it.silent && S.ev.types[evGroup(it.type)]).forEach(it => evQueue.push({key: it.key, time: it.time}));
+    save(); renderEvents();
+    if (!hadEV && document.querySelector("#tab-kuulutus.on")) renderScript();
+    const now = new Date().toLocaleTimeString("fi-FI");
+    const nNew = firstLoad ? 0 : fresh.length;
+    const prevT = lastGameTime; lastGameTime = d.gameTime;
+    const running = prevT != null && d.gameTime > prevT;
+    $("#evInfo").innerHTML = `Päivitetty ${now} · peliaika ${EVP.fi.clock(d.gameTime || 0)}${STATUS_FI[d.status] ? ` · ${STATUS_FI[d.status]}` : ""}${running ? " · <b>peli käynnissä</b>" : ""}${nNew ? ` – <b>${nNew} uutta</b>` : ""}.${S.ev.follow ? "" : ' <span class="muted">Seuranta pois päältä.</span>'}`;
+    drainQueue();
+  } catch (e) { $("#evInfo").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+function renderEvents(){
+  document.querySelectorAll("#evLangSeg button").forEach(b => b.classList.toggle("on", b.dataset.lang === S.lang));
+  $("#evFollow").checked = S.ev.follow; $("#evAuto").checked = S.ev.auto;
+  document.querySelectorAll("[data-evt]").forEach(c => c.checked = !!S.ev.types[c.dataset.evt]);
+  $("#btnEvNext").textContent = `▶ Kuuluta jono (${evQueue.length})`;
+  $("#btnEvNext").disabled = !evQueue.length;
+  if (!EV) { $("#evScore").textContent = "–"; $("#evList").innerHTML = '<p class="muted small">Ei tapahtumia.</p>'; return; }
+  const E = EVP[S.lang];
+  if (EV.playedPeriods && !$("#savesPeriod").dataset.touched) $("#savesPeriod").value = String(Math.min(EV.playedPeriods, 4));
+  $("#evScore").innerHTML = `${esc(evTeamName("home"))} <b>${EV.homeGoals ?? 0}–${EV.awayGoals ?? 0}</b> ${esc(evTeamName("away"))} <span class="small muted">· ${E.clock(EV.gameTime || 0)}</span>`;
+  const queued = new Map(evQueue.map(q => [q.key, q]));
+  $("#evList").innerHTML = ITEMS.length ? ITEMS.slice().reverse().map(it => {
+    const b = itemBlock(it, S.lang), on = S.ev.types[b.kind];
+    return `<div class="blk ev ${S.ev.read[it.key] ? "read" : ""} ${on && !b.silent ? "" : "off"}" data-k="${esc(it.key)}">
+      <div class="txt"><h4>${esc(b.h)}${queued.has(it.key) ? (gameResumed(queued.get(it.key)) ? " · ▶ jonossa, peli jatkunut" : " · ⏳ jonossa, odottaa pelin jatkumista") : S.ev.read[it.key] ? " · ✓" : ""}</h4>${b.html}</div>
+      ${b.silent ? "" : `<button class="b s" data-evsay="${esc(it.key)}" title="Lue ääneen">🔊</button>`}</div>`;
+  }).join("") : '<p class="muted" style="font-size:16px">Ottelussa ei ole vielä tapahtumia.</p>';
+}
+function itemBlk(key){ const it = ITEMS.find(x => x.key === key); return it ? itemBlock(it, S.lang) : null; }
+function markEv(key){
+  document.querySelectorAll("#evList .blk").forEach(el => el.classList.toggle("cur", el.dataset.k === key));
+  if (key) { S.ev.read[key] = 1; save(); const el = document.querySelector(`#evList .blk[data-k="${CSS.escape(key)}"]`); el?.classList.add("read"); el?.scrollIntoView({block:"center", behavior:"smooth"}); }
+}
+function speakItems(keys){
+  keys = keys.filter(k => itemBlk(k));
+  if (keys.length) speakSeq(keys.map(itemBlk), n => markEv(n < 0 ? null : keys[n]));
+}
+// Automaattiluku: tapahtuma kuulutetaan vasta, kun peli on jatkunut eli tulospalvelun
+// peliaika on edennyt tapahtuman ajan ohi (kirjaus tehdään katkolla, kello seisoo).
+const STATUS_FI = {0:"ei alkanut", 2:"päättynyt", 11:"1. erä", 12:"1. erätauko", 13:"2. erä", 14:"2. erätauko", 15:"3. erä"};
+let lastGameTime = null;
+const gameResumed = q => !!EV && (EV.gameTime || 0) > q.time;
+function drainQueue(){
+  renderEvents();
+  if (!S.ev.auto || playing || !evQueue.length) return;
+  const ready = evQueue.filter(gameResumed);
+  if (!ready.length) return;
+  ready.forEach(q => evQueue.splice(evQueue.indexOf(q), 1));
+  renderEvents();
+  speakItems(ready.map(q => q.key));
+}
+function setFollow(on){ clearInterval(evTimer); evTimer = null; if (on) evTimer = setInterval(fetchEvents, 5000); }
+$("#evList").onclick = e => { const b = e.target.closest("[data-evsay]"); if (b) speakItems([b.dataset.evsay]); };
+$("#btnEvNext").onclick = () => { const keys = evQueue.splice(0).map(q => q.key); renderEvents(); speakItems(keys); };
+$("#btnEvClear").onclick = () => { evQueue.length = 0; renderEvents(); };
+$("#btnEvStop").onclick = () => { stopAll(); };
+$("#evFollow").onchange = e => { S.ev.follow = e.target.checked; save(); setFollow(S.ev.follow); if (S.ev.follow) fetchEvents(); else renderEvents(); };
+$("#evAuto").onchange = e => { S.ev.auto = e.target.checked; save(); drainQueue(); };
+$("#savesPeriod").onchange = e => { e.target.dataset.touched = "1"; };
+document.querySelectorAll("[data-evt]").forEach(c => c.onchange = () => { S.ev.types[c.dataset.evt] = c.checked; save(); renderEvents(); });
+$("#evLangSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; stopAll(); S.lang = b.dataset.lang; save(); renderEvents(); renderVoices(); };
+setFollow(S.ev.follow);
+
+// ---------------------------------------------------------------- init
+renderHeader();
+initTts();
+loadGames();
+if (S.game) showTab("kokoonpanot");
+</script>
+</body>
+</html>
