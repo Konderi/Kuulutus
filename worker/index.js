@@ -263,7 +263,10 @@ async function azureTts(env, ctx, { lang = "fi", voice, rate = 1, segs, style = 
 // ---------------------------------------------------------------- puhesynteesi (ElevenLabs)
 // Suomalaiset kirjastoäänet lausuvat suomen oikein ilman Azuren ääntämiskorjauksia.
 const EL_MODEL = "eleven_v4";
-const EL_VOICES = { fi: [{ name: "el:izzHd0lE0tvV3bTEbylP", label: "Jarmo (ElevenLabs) – suositus" }] };
+const EL_VOICES = {
+  fi: [{ name: "el:izzHd0lE0tvV3bTEbylP", label: "Jarmo (mies) – suositus" }, { name: "el:2Yg0KQ858zsEJOsoPmT2", label: "Kaisa (nainen)" }],
+  en: [{ name: "el:izzHd0lE0tvV3bTEbylP", label: "Jarmo (mies)" }, { name: "el:2Yg0KQ858zsEJOsoPmT2", label: "Kaisa (nainen)" }],
+};
 const EL_FALLBACK = "fi-FI-NooraNeural";   // jos ElevenLabsin kiintiö loppuu tai palvelu ei vastaa
 const FI_VOWELS = new Set("AEIOUYÄÖ");
 
@@ -300,7 +303,7 @@ function elText(lang, segs, style, mood = "confident") {
 
 async function elTts(env, ctx, { lang = "fi", voice, rate = 1, segs, style = "neutral", mood = "confident" }) {
   if (!env.ELEVENLABS_API_KEY) throw new UserError("ElevenLabs ei ole käytössä: aseta ELEVENLABS_API_KEY.");
-  if (!EL_VOICES.fi.some(v => v.name === voice)) throw new UserError(`Tuntematon ääni: ${voice}`);
+  if (![...EL_VOICES.fi, ...EL_VOICES.en].some(v => v.name === voice)) throw new UserError(`Tuntematon ääni: ${voice}`);
   if (!Array.isArray(segs) || segs.length > 400) throw new UserError("Virheellinen teksti.");
   const speed = Math.round(Math.min(1.2, Math.max(0.7, Number(rate) || 1)) * 100) / 100;
   const body = { language_code: lang === "fi" ? "fi" : "en", model_id: EL_MODEL, text: elText(lang, segs, style === "announcer" ? "announcer" : "neutral", mood === "excited" ? "excited" : "confident"), voice_settings: { speed } };
@@ -449,12 +452,10 @@ export default {
         if (url.pathname === "/api/events") return json(await gameEvents(+q.get("gameid"), +q.get("season") || await currentSeason()));
         if (url.pathname === "/api/status") {
           const azure = !!(env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION), el = !!env.ELEVENLABS_API_KEY;
-          return json({ tts: azure || el, engine: el ? "elevenlabs" : azure ? "azure" : "", auth: true, spotifyClientId: env.SPOTIFY_CLIENT_ID || "" });
+          return json({ tts: azure || el, engine: el ? "elevenlabs" : azure ? "azure" : "", auth: true });
         }
-        if (url.pathname === "/api/voices") {
-          const azure = !!env.AZURE_SPEECH_KEY;
-          return json({ fi: [...(env.ELEVENLABS_API_KEY ? EL_VOICES.fi : []), ...(azure ? VOICES.fi : [])], en: azure ? VOICES.en : [] });
-        }
+        // ElevenLabs-äänet valikkoon; Azure vain varajärjestelynä (valikossa vain, jos ElevenLabsia ei ole)
+        if (url.pathname === "/api/voices") return json(env.ELEVENLABS_API_KEY ? EL_VOICES : env.AZURE_SPEECH_KEY ? VOICES : { fi: [], en: [] });
       }
       if (request.method === "POST" && url.pathname === "/api/tts") {
         const body = await request.json();

@@ -490,7 +490,12 @@ def piper_tts(lang, voice, rate, segs, style="neutral"):
 # ---------------------------------------------------------------- puhesynteesi (ElevenLabs)
 # Suomalaiset kirjastoäänet lausuvat suomen oikein ilman Azuren ääntämiskorjauksia.
 EL_MODEL = "eleven_v4"
-EL_VOICES = {"fi": [{"name": "el:izzHd0lE0tvV3bTEbylP", "label": "Jarmo (ElevenLabs) – suositus"}]}
+EL_VOICES = {
+    "fi": [{"name": "el:izzHd0lE0tvV3bTEbylP", "label": "Jarmo (mies) – suositus"},
+           {"name": "el:2Yg0KQ858zsEJOsoPmT2", "label": "Kaisa (nainen)"}],
+    "en": [{"name": "el:izzHd0lE0tvV3bTEbylP", "label": "Jarmo (mies)"},
+           {"name": "el:2Yg0KQ858zsEJOsoPmT2", "label": "Kaisa (nainen)"}],
+}
 EL_FALLBACK = "fi-FI-NooraNeural"   # jos ElevenLabsin kiintiö loppuu tai palvelu ei vastaa
 FI_VOWELS = set("AEIOUYÄÖ")
 
@@ -588,14 +593,11 @@ def tts_any(lang, voice, rate, segs, style, mood="confident"):
 
 
 def tts_voices():
-    if azure_conf() or el_key():
-        out = {"fi": [], "en": []}
-        if el_key():
-            out["fi"] += EL_VOICES["fi"]
-        if azure_conf():
-            out["fi"] += VOICES["fi"]
-            out["en"] += VOICES["en"]
-        return out
+    # ElevenLabs-äänet valikkoon; Azure vain varajärjestelynä (näkyy valikossa vain, jos ElevenLabsia ei ole)
+    if el_key():
+        return EL_VOICES
+    if azure_conf():
+        return VOICES
     if piper_available():
         return {k: [v for v in vs if (VOICE_DIR / f'{v["name"].split(":", 1)[1]}.onnx').exists()] for k, vs in PIPER_VOICES.items()}
     return {"fi": [], "en": []}
@@ -636,7 +638,7 @@ class Handler(BaseHTTPRequestHandler):
             if u.path == "/api/events":
                 return self._send(200, game_events(int(q["gameid"]), int(q.get("season") or current_season())))
             if u.path == "/api/status":
-                return self._send(200, {"tts": bool(azure_conf() or el_key() or piper_available()), "engine": "elevenlabs" if el_key() else "azure" if azure_conf() else ("piper" if piper_available() else ""), "spotifyClientId": os.environ.get("SPOTIFY_CLIENT_ID", "").strip()})
+                return self._send(200, {"tts": bool(azure_conf() or el_key() or piper_available()), "engine": "elevenlabs" if el_key() else "azure" if azure_conf() else ("piper" if piper_available() else "")})
             if u.path == "/api/voices":
                 return self._send(200, tts_voices())
             return self._send(404, {"error": "Ei löydy"})
