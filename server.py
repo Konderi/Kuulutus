@@ -305,16 +305,25 @@ def build_ssml(lang, voice, rate, segs, style="neutral"):
     rate = float(rate) * (ANNOUNCER["rate"] if ann else 1)
     r = int(round((rate - 1) * 100))
     pause = ANNOUNCER["pause"] if ann else 1
-    runs = []  # [(ääni, [osat])], osa = tekstiä tai ("brk", ms)
+    runs = []  # [(ääni, [osat])], osa = tekstiä tai ("brk", ms) tai ("hype", teksti)
+    bang = False
     for s in segs:
         if s.get("brk"):
             if runs:
                 runs[-1][1].append(("brk", int(int(s["brk"]) * pause)))
             continue
         text = s.get("t", "")
+        if bang:  # huutomerkki on jo nimessä → seuraava piste pois
+            text, bang = re.sub(r"^\.", "", text), False
         if not text.strip() and not (runs and text):
             continue
         v = fi_voice if s.get("fi") else voice
+        if s.get("hype"):  # maalintekijän nimi: tauko ennen ja korostettu, korkeampi sävy
+            if not (runs and runs[-1][0] == v):
+                runs.append((v, []))
+            runs[-1][1].extend([("brk", int(300 * pause)), ("hype", text + "!")])
+            bang = True
+            continue
         if runs and runs[-1][0] == v:
             parts = runs[-1][1]
             if parts and isinstance(parts[-1], str):
@@ -324,7 +333,7 @@ def build_ssml(lang, voice, rate, segs, style="neutral"):
         else:
             runs.append((v, [text]))
 
-    def chunk(text, v):
+    def chunk(text, v, hype=False):
         text = " ".join(text.split())
         if v.startswith("fi-FI"):
             text = fi_normalize(text, v in FI_CLASSIC)
@@ -333,12 +342,16 @@ def build_ssml(lang, voice, rate, segs, style="neutral"):
         if "MAI-Voice" in v:  # uudet äänet lukevat numeron perässä olevan pisteen ääneen ("31 piste")
             text = re.sub(r"(\d)\.(?=\s|$)", r"\1", text)
         t = xml_esc(text)
+        if hype:
+            return f'<prosody rate="{r - 5:+d}%" pitch="+15%" volume="+25%">{t}</prosody>'
         attrs = (f' rate="{r:+d}%"' if r else "") + (f' pitch="{ANNOUNCER["pitch"]}" volume="{ANNOUNCER["volume"]}"' if ann else "")
         return f'<prosody{attrs}>{t}</prosody>' if attrs else t
 
     body = []
     for v, parts in runs:
-        inner = "".join(f'<break time="{p[1]}ms"/>' if isinstance(p, tuple) else chunk(p, v) for p in parts if isinstance(p, tuple) or p.strip())
+        inner = "".join(
+            (chunk(p[1], v, True) if p[0] == "hype" else f'<break time="{p[1]}ms"/>') if isinstance(p, tuple) else chunk(p, v)
+            for p in parts if isinstance(p, tuple) or p.strip())
         if ann and v in VOICE_STYLE:
             inner = f'<mstts:express-as style="{VOICE_STYLE[v]}">{inner}</mstts:express-as>'
         body.append(f'<voice name="{xml_esc(v)}">{inner}</voice>')
@@ -488,12 +501,20 @@ def el_key():
 
 def el_text(lang, segs, style, mood="confident"):
     """Kuulutuksen osat yhdeksi tekstiksi. Tauot rivinvaihtoina, kuuluttajatyyli [excited]-tagilla."""
-    out = []
+    out, bang = [], False
     for s in segs:
         if s.get("brk"):
             out.append("\n")
             continue
-        out.append(s.get("t", ""))
+        t = s.get("t", "")
+        if s.get("hype"):  # maalintekijä: dramaattinen tauko ennen nimeä ja huutomerkki perään
+            if out:
+                out[-1] = out[-1].rstrip(", ") + "... "
+            bang = True
+        elif bang:
+            t = re.sub(r"^\.", "!", t)
+            bang = False
+        out.append(t)
     text = "".join(out)
     text = "\n".join(" ".join(line.split()) for line in text.split("\n"))
     text = re.sub(r"\n+", "\n", text).strip()

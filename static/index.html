@@ -1169,7 +1169,11 @@ function itemBlock(it, lang){
     const gt = E.gtype[e.goalType] || (fi ? e.specialFI : e.specialEN).toLowerCase();
     if (fi) { nameSeg(b, evTeamName(e.side)); txt(b, `, ${ordinal(n, "fi")} maali${gt ? ", " + gt : ""}.`); }
     else { txt(b, `${ordinal(n, "en").replace(/^./, c => c.toUpperCase())} goal for `); nameSeg(b, evTeamName(e.side)); txt(b, (gt ? `, ${gt}` : "") + "."); }
-    br(b, 300); txt(b, fi ? "Maalintekijä " : "Scored by "); evWho(b, P, e.side, e.scorer); txt(b, ".");
+    // maalintekijän nimi hehkutuksella: puheessa tauko ennen nimeä ja huutomerkki (seg.hype)
+    br(b, 300); txt(b, fi ? "Maalintekijä " : "Scored by ");
+    const before = b.segs.length; evWho(b, P, e.side, e.scorer);
+    for (let i = before; i < b.segs.length; i++) if (b.segs[i].fi) b.segs[i].hype = true;
+    txt(b, ".");
     if (e.assists.length) { br(b, 300); txt(b, fi ? (e.assists.length > 1 ? "Syöttäjät " : "Syöttäjä ") : "Assisted by "); evList(b, P, e.side, e.assists); txt(b, "."); }
     br(b, 300); time();
   } else if (it.type === "Penalty" || it.type === "PG") {

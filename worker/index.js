@@ -188,30 +188,39 @@ function buildSsml(lang, voice, rate, segs, style = "neutral") {
   rate = rate * (ann ? ANNOUNCER.rate : 1);
   const r = Math.round((rate - 1) * 100);
   const pause = ann ? ANNOUNCER.pause : 1;
-  const runs = [];   // { v, parts: [teksti | { brk }] }
+  const runs = [];   // { v, parts: [teksti | { brk } | { hype }] }
+  let bang = false;
   for (const s of segs) {
     if (s.brk) { if (runs.length) runs[runs.length - 1].parts.push({ brk: Math.trunc((parseInt(s.brk, 10) || 0) * pause) }); continue; }
-    const text = String(s.t || "");
+    let text = String(s.t || "");
+    if (bang) { text = text.replace(/^\./, ""); bang = false; }   // huutomerkki on jo nimessä
     if (!text.trim() && !(runs.length && text)) continue;
     const v = s.fi ? fiVoice : voice;
+    if (s.hype) {   // maalintekijän nimi: tauko ennen ja korostettu, korkeampi sävy
+      if (!(runs.length && runs[runs.length - 1].v === v)) runs.push({ v, parts: [] });
+      runs[runs.length - 1].parts.push({ brk: Math.trunc(300 * pause) }, { hype: text + "!" });
+      bang = true;
+      continue;
+    }
     const last = runs[runs.length - 1];
     if (last && last.v === v) {
       const p = last.parts;
       if (p.length && typeof p[p.length - 1] === "string") p[p.length - 1] += text; else p.push(text);
     } else runs.push({ v, parts: [text] });
   }
-  const chunk = (text, v) => {
+  const chunk = (text, v, hype = false) => {
     text = text.split(/\s+/).filter(Boolean).join(" ");
     if (v.startsWith("fi-FI")) text = fiNormalize(text, FI_CLASSIC.has(v));
     else text = text.replace(/(?<![\d.:])(\d{1,2}):(\d{2})(?![\d:])/g, "$1 $2");   // "51:31" → "51 31" (ei "colon")
     if (v.includes("MAI-Voice")) text = text.replace(/(\d)\.(?=\s|$)/g, "$1");     // MAI lukee pisteen ääneen
     const t = xmlEsc(text);
+    if (hype) return `<prosody rate="${r - 5 >= 0 ? "+" : ""}${r - 5}%" pitch="+15%" volume="+25%">${t}</prosody>`;
     const attrs = (r ? ` rate="${r > 0 ? "+" : ""}${r}%"` : "") + (ann ? ` pitch="${ANNOUNCER.pitch}" volume="${ANNOUNCER.volume}"` : "");
     return attrs ? `<prosody${attrs}>${t}</prosody>` : t;
   };
   const body = runs.map(({ v, parts }) => {
     let inner = parts.filter(p => typeof p !== "string" || p.trim())
-      .map(p => typeof p === "string" ? chunk(p, v) : `<break time="${p.brk}ms"/>`).join("");
+      .map(p => typeof p === "string" ? chunk(p, v) : p.hype !== undefined ? chunk(p.hype, v, true) : `<break time="${p.brk}ms"/>`).join("");
     if (ann && VOICE_STYLE[v]) inner = `<mstts:express-as style="${VOICE_STYLE[v]}">${inner}</mstts:express-as>`;
     return `<voice name="${xmlEsc(v)}">${inner}</voice>`;
   }).join("");
@@ -262,7 +271,17 @@ class ElevenLabsError extends Error { constructor(status, detail) { super(`Eleve
 
 // Kuulutuksen osat yhdeksi tekstiksi: tauot rivinvaihtoina, kuuluttajatyyli [excited]-tagilla
 function elText(lang, segs, style, mood = "confident") {
-  let text = segs.map(s => s.brk ? "\n" : String(s.t || "")).join("");
+  const out = []; let bang = false;
+  for (const s of segs) {
+    if (s.brk) { out.push("\n"); continue; }
+    let t = String(s.t || "");
+    if (s.hype) {   // maalintekijä: dramaattinen tauko ennen nimeä ja huutomerkki perään
+      if (out.length) out[out.length - 1] = out[out.length - 1].replace(/[, ]+$/, "") + "... ";
+      bang = true;
+    } else if (bang) { t = t.replace(/^\./, "!"); bang = false; }
+    out.push(t);
+  }
+  let text = out.join("");
   text = text.split("\n").map(l => l.split(/\s+/).filter(Boolean).join(" ")).join("\n").replace(/\n+/g, "\n").trim();
   if (lang === "fi") {
     text = text.replace(/(?<![\d.:])(\d{1,2})[.:]([0-5]\d)(?![\d:]|\.\d)/g, (_, m, s) => fiTime(+m, +s));
