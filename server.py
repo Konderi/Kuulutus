@@ -343,7 +343,7 @@ def build_ssml(lang, voice, rate, segs, style="neutral"):
             text = re.sub(r"(\d)\.(?=\s|$)", r"\1", text)
         t = xml_esc(text)
         if hype:
-            return f'<prosody rate="{r - 5:+d}%" pitch="+15%" volume="+25%">{t}</prosody>'
+            return f'<prosody rate="{r - 5:+d}%" pitch="+20%" volume="+30%">{t}</prosody>'
         attrs = (f' rate="{r:+d}%"' if r else "") + (f' pitch="{ANNOUNCER["pitch"]}" volume="{ANNOUNCER["volume"]}"' if ann else "")
         return f'<prosody{attrs}>{t}</prosody>' if attrs else t
 
@@ -507,9 +507,9 @@ def el_text(lang, segs, style, mood="confident"):
             out.append("\n")
             continue
         t = s.get("t", "")
-        if s.get("hype"):  # maalintekijä: dramaattinen tauko ennen nimeä ja huutomerkki perään
+        if s.get("hype"):  # maalintekijä: nimi omalle rivilleen huutaen ja huutomerkki perään
             if out:
-                out[-1] = out[-1].rstrip(", ") + "... "
+                out[-1] = out[-1].rstrip(", ") + ",\n[shouting] "
             bang = True
         elif bang:
             t = re.sub(r"^\.", "!", t)

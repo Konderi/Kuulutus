@@ -214,7 +214,7 @@ function buildSsml(lang, voice, rate, segs, style = "neutral") {
     else text = text.replace(/(?<![\d.:])(\d{1,2}):(\d{2})(?![\d:])/g, "$1 $2");   // "51:31" → "51 31" (ei "colon")
     if (v.includes("MAI-Voice")) text = text.replace(/(\d)\.(?=\s|$)/g, "$1");     // MAI lukee pisteen ääneen
     const t = xmlEsc(text);
-    if (hype) return `<prosody rate="${r - 5 >= 0 ? "+" : ""}${r - 5}%" pitch="+15%" volume="+25%">${t}</prosody>`;
+    if (hype) return `<prosody rate="${r - 5 >= 0 ? "+" : ""}${r - 5}%" pitch="+20%" volume="+30%">${t}</prosody>`;
     const attrs = (r ? ` rate="${r > 0 ? "+" : ""}${r}%"` : "") + (ann ? ` pitch="${ANNOUNCER.pitch}" volume="${ANNOUNCER.volume}"` : "");
     return attrs ? `<prosody${attrs}>${t}</prosody>` : t;
   };
@@ -275,8 +275,8 @@ function elText(lang, segs, style, mood = "confident") {
   for (const s of segs) {
     if (s.brk) { out.push("\n"); continue; }
     let t = String(s.t || "");
-    if (s.hype) {   // maalintekijä: dramaattinen tauko ennen nimeä ja huutomerkki perään
-      if (out.length) out[out.length - 1] = out[out.length - 1].replace(/[, ]+$/, "") + "... ";
+    if (s.hype) {   // maalintekijä: nimi omalle rivilleen huutaen ja huutomerkki perään
+      if (out.length) out[out.length - 1] = out[out.length - 1].replace(/[, ]+$/, "") + ",\n[shouting] ";
       bang = true;
     } else if (bang) { t = t.replace(/^\./, "!"); bang = false; }
     out.push(t);
