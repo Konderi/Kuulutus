@@ -465,7 +465,7 @@ function newLine(){ return {d:["",""], f:["","",""]}; }
 
 let S = load() || {game:null, teams:{home:emptyTeam(""), away:emptyTeam("")}, side:"away", ann:"away", opts:{coach:false, extra:true, first:true}, rate:0.9, voice:""};
 S.lang ||= "fi"; S.voices ||= {fi:"", en:""}; S.rate = S.rate || 0.95;
-if (S.voiceMig !== 2) { S.voices = {fi:"", en:""}; S.voiceMig = 2; }
+if (S.voiceMig !== 3) { S.voices = {fi:"", en:""}; S.voiceMig = 3; }   // oletusääni listan ensimmäinen (Jarmo / ElevenLabs)
 S.style ||= "announcer";   // oletusääni Noora (mitattu luotettavimmaksi)
 S.ev ||= {gameId:null, follow:false, auto:false, types:{Goal:true, Penalty:true, Timeout:true, GK:true}, seen:{}, read:{}};
 S.ev.types.PX ??= true; S.opts.welcome ??= true; S.opts.refs ??= true; if (S.opts.coachDefault !== 1) { S.opts.coach = true; S.opts.coachDefault = 1; }
@@ -914,7 +914,8 @@ function renderVoices(){
     const list = AZ_VOICES[S.lang] || [];
     if (!list.some(v => v.name === curVoice())) S.voices[S.lang] = list[0]?.name || "";
     sel.innerHTML = list.map(v => `<option value="${esc(v.name)}"${v.name===curVoice()?" selected":""}>${esc(v.label)}</option>`).join("");
-    $("#voiceInfo").innerHTML = `${ENGINE === "piper" ? "Piper-neuroääni (paikallinen)" : "Azure-neuroääni"}${S.lang === "en" ? " – nimet luetaan aina suomalaisella lukijalla" : ""}. Nimen ääntämystä voi korjata pelaajalistan Ääntämys-sarakkeessa.`;
+    const isEl = curVoice().startsWith("el:");
+    $("#voiceInfo").innerHTML = `${isEl ? "ElevenLabs-ääni (Kuuluttaja-tyyli: innostunut). Nopeussäätö vaikuttaa vain Azure-ääniin. Jos ElevenLabsin kiintiö loppuu, kuulutus tehdään automaattisesti Azuren Nooralla." : ENGINE === "piper" ? "Piper-neuroääni (paikallinen)." : "Azure-neuroääni."}${S.lang === "en" ? " Englanniksi nimet luetaan aina suomalaisella lukijalla." : ""} Nimen ääntämystä voi korjata pelaajalistan Ääntämys-sarakkeessa.`;
     $("#btnPrep").style.display = "";
   } else {
     $("#btnPrep").style.display = "none";
@@ -928,7 +929,7 @@ function renderVoices(){
   }
 }
 if (synth) synth.onvoiceschanged = () => { if (!TTS) renderVoices(); };
-$("#voice").onchange = e => { S.voices[S.lang] = e.target.value; save(); };
+$("#voice").onchange = e => { S.voices[S.lang] = e.target.value; save(); renderVoices(); };
 
 function ttsReq(b){ return {lang: S.lang, voice: curVoice(), rate: S.rate, style: S.style, segs: b.segs}; }
 function getAudio(b){

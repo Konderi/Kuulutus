@@ -216,9 +216,9 @@ def game_events(gameid, season):
 # jotka osaavat lausua suomalaiset nimet suomeksi (<lang xml:lang="fi-FI">).
 VOICES = {
     "fi": [
-        {"name": "fi-FI-NooraNeural", "label": "Noora (nainen) – suositus"},
-        {"name": "fi-FI-Grant:MAI-Voice-2.1", "label": "Grant (mies, uusi – kokeellinen)"},
-        {"name": "fi-FI-Harper:MAI-Voice-2.1", "label": "Harper (nainen, uusi – kokeellinen)"},
+        {"name": "fi-FI-NooraNeural", "label": "Noora (Azure)"},
+        {"name": "fi-FI-Grant:MAI-Voice-2.1", "label": "Grant (Azure, kokeellinen)"},
+        {"name": "fi-FI-Harper:MAI-Voice-2.1", "label": "Harper (Azure, kokeellinen)"},
     ],
     "en": [
         {"name": "en-US-AvaMultilingualNeural", "label": "Ava – nimet: Noora"},
@@ -474,9 +474,102 @@ def piper_tts(lang, voice, rate, segs, style="neutral"):
     return audio
 
 
+# ---------------------------------------------------------------- puhesynteesi (ElevenLabs)
+# Suomalaiset kirjastoäänet lausuvat suomen oikein ilman Azuren ääntämiskorjauksia.
+EL_MODEL = "eleven_v4"
+EL_VOICES = {"fi": [{"name": "el:izzHd0lE0tvV3bTEbylP", "label": "Jarmo (ElevenLabs) – suositus"}]}
+EL_FALLBACK = "fi-FI-NooraNeural"   # jos ElevenLabsin kiintiö loppuu tai palvelu ei vastaa
+FI_VOWELS = set("AEIOUYÄÖ")
+
+
+def el_key():
+    return os.environ.get("ELEVENLABS_API_KEY", "").strip()
+
+
+def el_text(lang, segs, style):
+    """Kuulutuksen osat yhdeksi tekstiksi. Tauot rivinvaihtoina, kuuluttajatyyli [excited]-tagilla."""
+    out = []
+    for s in segs:
+        if s.get("brk"):
+            out.append("\n")
+            continue
+        out.append(s.get("t", ""))
+    text = "".join(out)
+    text = "\n".join(" ".join(line.split()) for line in text.split("\n"))
+    text = re.sub(r"\n+", "\n", text).strip()
+    if lang == "fi":
+        # peliaika sanoina perusmuodossa (14.35 → "neljätoista kolmekymmentäviisi")
+        text = re.sub(r"(?<![\d.:])(\d{1,2})[.:]([0-5]\d)(?![\d:]|\.\d)", lambda m: fi_time(int(m.group(1)), int(m.group(2))), text)
+        # isoilla kirjoitettu lausuttava nimi luetaan muuten lyhenteenä ("HYRI" → "hoo yy är ii") → "Hyri"
+        text = re.sub(r"\b[A-ZÅÄÖ]{2,}\b", lambda m: m.group(0).capitalize() if sum(c in FI_VOWELS for c in m.group(0)) >= 2 else m.group(0), text)
+        # yksittäinen kirjain ("K-Espoo V") kirjaimen nimenä
+        text = re.sub(r"(?<![\w-])([A-ZÅÄÖ])(?![\w-]|\.\w)", lambda m: FI_LETTERS[m.group(1)], text)
+    else:
+        text = re.sub(r"(?<![\d.:])(\d{1,2}):(\d{2})(?![\d:])", r"\1 \2", text)
+    return ("[excited] " if style == "announcer" else "") + text
+
+
+def el_tts(lang, voice, rate, segs, style="neutral"):
+    key = el_key()
+    if not key:
+        raise RuntimeError("ElevenLabs ei ole käytössä: aseta ELEVENLABS_API_KEY.")
+    allowed = {v["name"] for vs in EL_VOICES.values() for v in vs}
+    if voice not in allowed:
+        raise RuntimeError(f"Tuntematon ääni: {voice}")
+    speed = min(1.2, max(0.7, float(rate or 1)))
+    body = {"text": el_text(lang, segs, style), "model_id": EL_MODEL, "language_code": lang if lang == "fi" else "en",
+            "voice_settings": {"speed": round(speed, 2)}}
+    payload = json.dumps(body, ensure_ascii=False, sort_keys=True)
+    path = TTS_CACHE / f"el-{hashlib.sha256((voice + payload).encode()).hexdigest()}.mp3"
+    if path.exists():
+        return path.read_bytes()
+    req = urllib.request.Request(
+        f"https://api.elevenlabs.io/v1/text-to-speech/{voice.split(':', 1)[1]}?output_format=mp3_44100_128",
+        data=payload.encode("utf-8"), method="POST",
+        headers={"xi-api-key": key, "Content-Type": "application/json", "User-Agent": UA})
+    try:
+        with urllib.request.urlopen(req, timeout=90) as r:
+            audio = r.read()
+    except urllib.error.HTTPError as e:
+        raise ElevenLabsError(e.code, e.read()[:300].decode("utf-8", "replace"))
+    except urllib.error.URLError as e:
+        raise ElevenLabsError(0, str(e.reason))
+    TTS_CACHE.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(audio)
+    return audio
+
+
+class ElevenLabsError(Exception):
+    def __init__(self, status, detail):
+        super().__init__(f"ElevenLabs {status}: {detail}")
+        self.status = status
+
+
+def tts_any(lang, voice, rate, segs, style):
+    """Palauttaa (ääni, mime, käytetty_ääni). ElevenLabsin virheessä varalle Azure (Noora)."""
+    if voice.startswith("piper:"):
+        return piper_tts(lang, voice, rate, segs, style), "audio/wav", voice
+    if voice.startswith("el:"):
+        try:
+            return el_tts(lang, voice, rate, segs, style), "audio/mpeg", voice
+        except ElevenLabsError as e:
+            print("ElevenLabs-virhe, käytetään Azurea:", e, file=sys.stderr)
+            if not azure_conf():
+                raise RuntimeError(f"ElevenLabs ei vastannut ({e.status}) eikä Azurea ole asetettu.")
+            fb = EL_FALLBACK if lang == "fi" else "en-US-AvaMultilingualNeural"
+            return azure_tts(lang, fb, rate, segs, style), "audio/mpeg", fb
+    return azure_tts(lang, voice, rate, segs, style), "audio/mpeg", voice
+
+
 def tts_voices():
-    if azure_conf():
-        return VOICES
+    if azure_conf() or el_key():
+        out = {"fi": [], "en": []}
+        if el_key():
+            out["fi"] += EL_VOICES["fi"]
+        if azure_conf():
+            out["fi"] += VOICES["fi"]
+            out["en"] += VOICES["en"]
+        return out
     if piper_available():
         return {k: [v for v in vs if (VOICE_DIR / f'{v["name"].split(":", 1)[1]}.onnx').exists()] for k, vs in PIPER_VOICES.items()}
     return {"fi": [], "en": []}
@@ -517,7 +610,7 @@ class Handler(BaseHTTPRequestHandler):
             if u.path == "/api/events":
                 return self._send(200, game_events(int(q["gameid"]), int(q.get("season") or current_season())))
             if u.path == "/api/status":
-                return self._send(200, {"tts": bool(azure_conf() or piper_available()), "engine": "azure" if azure_conf() else ("piper" if piper_available() else "")})
+                return self._send(200, {"tts": bool(azure_conf() or el_key() or piper_available()), "engine": "elevenlabs" if el_key() else "azure" if azure_conf() else ("piper" if piper_available() else "")})
             if u.path == "/api/voices":
                 return self._send(200, tts_voices())
             return self._send(404, {"error": "Ei löydy"})
@@ -532,10 +625,8 @@ class Handler(BaseHTTPRequestHandler):
                 if n > 200_000:
                     return self._send(413, {"error": "Liian pitkä teksti."})
                 p = json.loads(self.rfile.read(n))
-                if str(p.get("voice", "")).startswith("piper:"):
-                    return self._send(200, piper_tts(p.get("lang", "fi"), p["voice"], p.get("rate", 1), p["segs"], p.get("style", "neutral")), "audio/wav")
-                audio = azure_tts(p.get("lang", "fi"), p["voice"], p.get("rate", 1), p["segs"], p.get("style", "neutral"))
-                return self._send(200, audio, "audio/mpeg")
+                audio, mime, used = tts_any(p.get("lang", "fi"), str(p.get("voice", "")), p.get("rate", 1), p["segs"], p.get("style", "neutral"))
+                return self._send(200, audio, mime)
             except RuntimeError as e:
                 return self._send(400, {"error": str(e)})
             except Exception as e:

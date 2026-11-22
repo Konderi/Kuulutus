@@ -13,9 +13,9 @@ const UA = "Kuulutus/1.0 (+announcer tool)";
 
 const VOICES = {
   fi: [
-    { name: "fi-FI-NooraNeural", label: "Noora (nainen) – suositus" },
-    { name: "fi-FI-Grant:MAI-Voice-2.1", label: "Grant (mies, uusi – kokeellinen)" },
-    { name: "fi-FI-Harper:MAI-Voice-2.1", label: "Harper (nainen, uusi – kokeellinen)" },
+    { name: "fi-FI-NooraNeural", label: "Noora (Azure)" },
+    { name: "fi-FI-Grant:MAI-Voice-2.1", label: "Grant (Azure, kokeellinen)" },
+    { name: "fi-FI-Harper:MAI-Voice-2.1", label: "Harper (Azure, kokeellinen)" },
   ],
   en: [
     { name: "en-US-AvaMultilingualNeural", label: "Ava – nimet: Noora" },
@@ -251,6 +251,70 @@ async function azureTts(env, ctx, { lang = "fi", voice, rate = 1, segs, style = 
   return resp;
 }
 
+// ---------------------------------------------------------------- puhesynteesi (ElevenLabs)
+// Suomalaiset kirjastoäänet lausuvat suomen oikein ilman Azuren ääntämiskorjauksia.
+const EL_MODEL = "eleven_v4";
+const EL_VOICES = { fi: [{ name: "el:izzHd0lE0tvV3bTEbylP", label: "Jarmo (ElevenLabs) – suositus" }] };
+const EL_FALLBACK = "fi-FI-NooraNeural";   // jos ElevenLabsin kiintiö loppuu tai palvelu ei vastaa
+const FI_VOWELS = new Set("AEIOUYÄÖ");
+
+class ElevenLabsError extends Error { constructor(status, detail) { super(`ElevenLabs ${status}: ${detail}`); this.status = status; } }
+
+// Kuulutuksen osat yhdeksi tekstiksi: tauot rivinvaihtoina, kuuluttajatyyli [excited]-tagilla
+function elText(lang, segs, style) {
+  let text = segs.map(s => s.brk ? "\n" : String(s.t || "")).join("");
+  text = text.split("\n").map(l => l.split(/\s+/).filter(Boolean).join(" ")).join("\n").replace(/\n+/g, "\n").trim();
+  if (lang === "fi") {
+    text = text.replace(/(?<![\d.:])(\d{1,2})[.:]([0-5]\d)(?![\d:]|\.\d)/g, (_, m, s) => fiTime(+m, +s));
+    // isoilla kirjoitettu lausuttava nimi luetaan muuten lyhenteenä ("HYRI" → "hoo yy är ii") → "Hyri"
+    text = text.replace(/(?<![\p{L}\p{N}_])[A-ZÅÄÖ]{2,}(?![\p{L}\p{N}_])/gu, w => [...w].filter(c => FI_VOWELS.has(c)).length >= 2 ? w[0] + w.slice(1).toLowerCase() : w);
+    text = text.replace(/(?<![\p{L}\p{N}_-])([A-ZÅÄÖ])(?![\p{L}\p{N}_-]|\.[\p{L}\p{N}_])/gu, (_, c) => FI_LETTERS[c]);
+  } else {
+    text = text.replace(/(?<![\d.:])(\d{1,2}):(\d{2})(?![\d:])/g, "$1 $2");
+  }
+  return (style === "announcer" ? "[excited] " : "") + text;
+}
+
+async function elTts(env, ctx, { lang = "fi", voice, rate = 1, segs, style = "neutral" }) {
+  if (!env.ELEVENLABS_API_KEY) throw new UserError("ElevenLabs ei ole käytössä: aseta ELEVENLABS_API_KEY.");
+  if (!EL_VOICES.fi.some(v => v.name === voice)) throw new UserError(`Tuntematon ääni: ${voice}`);
+  if (!Array.isArray(segs) || segs.length > 400) throw new UserError("Virheellinen teksti.");
+  const speed = Math.round(Math.min(1.2, Math.max(0.7, Number(rate) || 1)) * 100) / 100;
+  const body = { language_code: lang === "fi" ? "fi" : "en", model_id: EL_MODEL, text: elText(lang, segs, style === "announcer" ? "announcer" : "neutral"), voice_settings: { speed } };
+  if (body.text.length > 5000) throw new UserError("Liian pitkä teksti.");
+  const payload = JSON.stringify(body);
+  const cacheKey = new Request(`https://tts-cache.kuulutus/el-${await sha256(voice + payload)}.mp3`);
+  const cache = caches.default;
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+  let r;
+  try {
+    r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice.split(":")[1]}?output_format=mp3_44100_128`, {
+      method: "POST", body: payload,
+      headers: { "xi-api-key": env.ELEVENLABS_API_KEY, "Content-Type": "application/json", "User-Agent": UA },
+    });
+  } catch (e) { throw new ElevenLabsError(0, e.message); }
+  if (!r.ok) throw new ElevenLabsError(r.status, (await r.text()).slice(0, 300));
+  const resp = new Response(await r.arrayBuffer(), { headers: { "content-type": "audio/mpeg", "cache-control": "public, max-age=31536000" } });
+  ctx.waitUntil(cache.put(cacheKey, resp.clone()));
+  return resp;
+}
+
+// ElevenLabs-äänen virheessä (kiintiö, avain, katko) varalle Azure, jotta kuulutus ei jää tekemättä
+async function ttsAny(env, ctx, body) {
+  const voice = String(body.voice || "");
+  if (voice.startsWith("el:")) {
+    try { return await elTts(env, ctx, body); }
+    catch (e) {
+      if (!(e instanceof ElevenLabsError)) throw e;
+      console.log("ElevenLabs-virhe, käytetään Azurea:", e.message);
+      if (!env.AZURE_SPEECH_KEY) throw new UserError(`ElevenLabs ei vastannut (${e.status}) eikä Azurea ole asetettu.`);
+      return azureTts(env, ctx, { ...body, voice: body.lang === "fi" ? EL_FALLBACK : "en-US-AvaMultilingualNeural" });
+    }
+  }
+  return azureTts(env, ctx, body);
+}
+
 // ---------------------------------------------------------------- kirjautuminen (salasana)
 // Salasana on Workerin salaisuus SITE_PASSWORD. Onnistuneen kirjautumisen jälkeen selaimeen
 // annetaan HMAC-allekirjoitettu eväste (30 vrk). Salasanan vaihto mitätöi vanhat kirjautumiset.
@@ -361,14 +425,17 @@ export default {
         if (url.pathname === "/api/rosters") return json(await rosters(+q.get("gameid"), +q.get("season") || await currentSeason()));
         if (url.pathname === "/api/events") return json(await gameEvents(+q.get("gameid"), +q.get("season") || await currentSeason()));
         if (url.pathname === "/api/status") {
-          const tts = !!(env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION);
-          return json({ tts, engine: tts ? "azure" : "", auth: true });
+          const azure = !!(env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION), el = !!env.ELEVENLABS_API_KEY;
+          return json({ tts: azure || el, engine: el ? "elevenlabs" : azure ? "azure" : "", auth: true });
         }
-        if (url.pathname === "/api/voices") return json(env.AZURE_SPEECH_KEY ? VOICES : { fi: [], en: [] });
+        if (url.pathname === "/api/voices") {
+          const azure = !!env.AZURE_SPEECH_KEY;
+          return json({ fi: [...(env.ELEVENLABS_API_KEY ? EL_VOICES.fi : []), ...(azure ? VOICES.fi : [])], en: azure ? VOICES.en : [] });
+        }
       }
       if (request.method === "POST" && url.pathname === "/api/tts") {
         const body = await request.json();
-        return await azureTts(env, ctx, body);
+        return await ttsAny(env, ctx, body);
       }
       if (url.pathname.startsWith("/api/")) return json({ error: "Ei löydy" }, 404);
       return env.ASSETS.fetch(request);

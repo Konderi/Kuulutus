@@ -21,7 +21,8 @@
   },
   // Salaisuudet (ei tähän tiedostoon): Cloudflare-hallinnasta, tyyppi "Secret" (ei "Text")
   // Workers & Pages → kuulutus → Settings → Variables and Secrets
-  //   AZURE_SPEECH_KEY   (pakollinen puheäänelle)
+  //   AZURE_SPEECH_KEY   (Azure-äänet ja varajärjestely)
+  //   ELEVENLABS_API_KEY (ElevenLabs-ääni Jarmo, oletus)
   //   SITE_PASSWORD      (sivuston salasana; asetetaan GitHub-salaisuudesta julkaisun yhteydessä)
   "observability": { "enabled": true }
 }
