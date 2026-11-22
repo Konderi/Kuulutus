@@ -829,10 +829,12 @@ function listInto(b, P, lead, team, nrs, bare){
   return true;
 }
 const fullName = p => [titleCase(p.first), titleCase(p.last)].filter(Boolean).join(" ");
+// Tervehdys ottelun alkamisajan mukaan (kuulutetaan juuri ennen ottelua); laitteen kello vain, jos aikaa ei tiedetä
 function greeting(lang){
-  const h = new Date().getHours();
-  if (lang === "en") return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
-  return h < 11 ? "Hyvää huomenta" : h < 17 ? "Hyvää iltapäivää" : "Hyvää iltaa";
+  const m = /^(\d{1,2})[:.](\d{2})/.exec(S.game?.time || "");
+  const h = m ? +m[1] : new Date().getHours();
+  if (lang === "en") return h < 5 ? "Good evening" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+  return h < 5 ? "Hyvää iltaa" : h < 10 ? "Hyvää huomenta" : h < 12 ? "Hyvää päivää" : h < 17 ? "Hyvää iltapäivää" : "Hyvää iltaa";
 }
 function welcomeBlock(lang){
   const P = PH[lang], b = Blk(P.h.welcome), fi = lang === "fi";
