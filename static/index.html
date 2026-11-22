@@ -454,6 +454,7 @@ function newLine(){ return {d:["",""], f:["","",""]}; }
 
 let S = load() || {game:null, teams:{home:emptyTeam(""), away:emptyTeam("")}, side:"away", ann:"away", opts:{coach:false, extra:true, first:true}, rate:0.9, voice:""};
 S.lang ||= "fi"; S.voices ||= {fi:"", en:""}; S.rate = S.rate || 0.95;
+if (S.voiceMig !== 2) { S.voices = {fi:"", en:""}; S.voiceMig = 2; }   // oletusääni Noora (mitattu luotettavimmaksi)
 S.ev ||= {gameId:null, follow:false, auto:false, types:{Goal:true, Penalty:true, Timeout:true, GK:true}, seen:{}, read:{}};
 S.ev.types.PX ??= true; S.opts.welcome ??= true; S.opts.refs ??= true; if (S.opts.coachDefault !== 1) { S.opts.coach = true; S.opts.coachDefault = 1; }
 if (!["home","away","both"].includes(S.ann)) S.ann = "away";

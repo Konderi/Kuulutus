@@ -13,13 +13,12 @@ const UA = "Kuulutus/1.0 (+announcer tool)";
 
 const VOICES = {
   fi: [
+    { name: "fi-FI-NooraNeural", label: "Noora (nainen) – suositus" },
     { name: "fi-FI-HarriNeural", label: "Harri (mies)" },
-    { name: "fi-FI-NooraNeural", label: "Noora (nainen)" },
-    { name: "fi-FI-SelmaNeural", label: "Selma (nainen)" },
   ],
   en: [
-    { name: "en-US-AndrewMultilingualNeural", label: "Andrew – nimet: Harri" },
     { name: "en-US-AvaMultilingualNeural", label: "Ava – nimet: Noora" },
+    { name: "en-US-AndrewMultilingualNeural", label: "Andrew – nimet: Harri" },
   ],
 };
 // Englanninkielisessä kuulutuksessa nimet luetaan aina suomalaisella lukijalla
@@ -148,24 +147,45 @@ async function gameEvents(gameid, season) {
 
 const xmlEsc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 
+// Azuren suomiäänet kompastelevat tiettyihin sanoihin (mitattu puheentunnistuksella):
+//  - ykköseen päättyvät luvut 21–91 ("21" → "20 taiksi") → "kaksikymmentä yksi"
+//  - "ensimmäinen" ("ensin i nen") → "en-simmäinen"
+//  - peliaika "51.31" ("51 piste 31") → "51 31"
+//  - yksittäinen kirjain ("K-Espoo V" → "viidenneltä") → kirjaimen nimi ("vee")
+const FI_TENS = { 2: "kaksikymmentä", 3: "kolmekymmentä", 4: "neljäkymmentä", 5: "viisikymmentä", 6: "kuusikymmentä", 7: "seitsemänkymmentä", 8: "kahdeksankymmentä", 9: "yhdeksänkymmentä" };
+const FI_LETTERS = { A: "aa", B: "bee", C: "see", D: "dee", E: "ee", F: "äf", G: "gee", H: "hoo", I: "ii", J: "jii", K: "koo", L: "äl", M: "äm", N: "än", O: "oo", P: "pee", Q: "kuu", R: "är", S: "äs", T: "tee", U: "uu", V: "vee", W: "kaksoisvee", X: "äks", Y: "yy", Z: "tset", "Å": "oo", "Ä": "ää", "Ö": "öö" };
+function fiNormalize(text) {
+  text = text.replace(/(?<![\d.:])(\d{1,2})[.:](\d{2})(?![\d:]|\.\d)/g, "$1 $2");
+  text = text.replace(/(?<![\d.:])([2-9])1(?![\d:]|\.\d)/g, (_, d) => `${FI_TENS[d]} yksi`);
+  text = text.replace(/(?<![\p{L}\p{N}_-])([A-ZÅÄÖ])(?![\p{L}\p{N}_-]|\.[\p{L}\p{N}_])/gu, (_, c) => FI_LETTERS[c]);
+  return text.replace(/(^|[^\p{L}])([Ee])nsimmäi/gu, (_, pre, e) => `${pre}${e}n-simmäi`);
+}
+
+// Saman lukijan peräkkäinen teksti yhdistetään yhtenäisiksi lauseiksi (pilkottu lause katkoo rytmin)
 function buildSsml(lang, voice, rate, segs) {
   const locale = lang === "fi" ? "fi-FI" : "en-US";
-  const fiVoice = lang === "fi" ? voice : (FI_READER[voice] || "fi-FI-HarriNeural");
-  const r = Math.round((rate - 1) * 100), rateAttr = `${r >= 0 ? "+" : ""}${r}%`;
-  const runs = [];   // peräkkäiset saman lukijan osat yhteen <voice>-elementtiin
+  const fiVoice = lang === "fi" ? voice : (FI_READER[voice] || "fi-FI-NooraNeural");
+  const r = Math.round((rate - 1) * 100);
+  const runs = [];   // { v, parts: [teksti | { brk }] }
   for (const s of segs) {
-    let part, v;
-    if (s.brk) { part = `<break time="${parseInt(s.brk, 10) || 0}ms"/>`; v = runs.length ? runs[runs.length - 1].v : voice; }
-    else {
-      const text = String(s.t || "");
-      if (!text.trim()) continue;
-      v = s.fi ? fiVoice : voice;
-      part = `<prosody rate="${rateAttr}">${xmlEsc(text)}</prosody>`;
-    }
-    if (runs.length && runs[runs.length - 1].v === v) runs[runs.length - 1].p.push(part);
-    else runs.push({ v, p: [part] });
+    if (s.brk) { if (runs.length) runs[runs.length - 1].parts.push({ brk: parseInt(s.brk, 10) || 0 }); continue; }
+    const text = String(s.t || "");
+    if (!text.trim() && !(runs.length && text)) continue;
+    const v = s.fi ? fiVoice : voice;
+    const last = runs[runs.length - 1];
+    if (last && last.v === v) {
+      const p = last.parts;
+      if (p.length && typeof p[p.length - 1] === "string") p[p.length - 1] += text; else p.push(text);
+    } else runs.push({ v, parts: [text] });
   }
-  const body = runs.map(x => `<voice name="${xmlEsc(x.v)}">${x.p.join("")}</voice>`).join("");
+  const chunk = (text, v) => {
+    text = text.split(/\s+/).filter(Boolean).join(" ");
+    const t = xmlEsc(v.startsWith("fi-FI") ? fiNormalize(text) : text);
+    return r ? `<prosody rate="${r > 0 ? "+" : ""}${r}%">${t}</prosody>` : t;
+  };
+  const body = runs.map(({ v, parts }) => `<voice name="${xmlEsc(v)}">${parts
+    .filter(p => typeof p !== "string" || p.trim())
+    .map(p => typeof p === "string" ? chunk(p, v) : `<break time="${p.brk}ms"/>`).join("")}</voice>`).join("");
   return `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="${locale}">${body}</speak>`;
 }
 

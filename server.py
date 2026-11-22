@@ -216,13 +216,12 @@ def game_events(gameid, season):
 # jotka osaavat lausua suomalaiset nimet suomeksi (<lang xml:lang="fi-FI">).
 VOICES = {
     "fi": [
+        {"name": "fi-FI-NooraNeural", "label": "Noora (nainen) – suositus"},
         {"name": "fi-FI-HarriNeural", "label": "Harri (mies)"},
-        {"name": "fi-FI-NooraNeural", "label": "Noora (nainen)"},
-        {"name": "fi-FI-SelmaNeural", "label": "Selma (nainen)"},
     ],
     "en": [
-        {"name": "en-US-AndrewMultilingualNeural", "label": "Andrew – nimet: Harri"},
         {"name": "en-US-AvaMultilingualNeural", "label": "Ava – nimet: Noora"},
+        {"name": "en-US-AndrewMultilingualNeural", "label": "Andrew – nimet: Harri"},
     ],
 }
 
@@ -242,28 +241,69 @@ def xml_esc(s):
 FI_READER = {"en-US-AndrewMultilingualNeural": "fi-FI-HarriNeural", "en-US-AvaMultilingualNeural": "fi-FI-NooraNeural"}
 
 
+# Azuren suomiäänet kompastelevat tiettyihin sanoihin (mitattu puheentunnistuksella):
+#  - ykköseen päättyvät luvut 21–91 ("21" → "20 taiksi") → kirjoitetaan "kaksikymmentä yksi"
+#  - "ensimmäinen" ("ensin i nen") → "en-simmäinen"
+#  - peliaika "51.31" ("51 piste 31") → "51 31"
+#  - yksittäinen kirjain ("K-Espoo V" → "viidenneltä") → kirjaimen nimi ("vee")
+FI_TENS = {"2": "kaksikymmentä", "3": "kolmekymmentä", "4": "neljäkymmentä", "5": "viisikymmentä",
+           "6": "kuusikymmentä", "7": "seitsemänkymmentä", "8": "kahdeksankymmentä", "9": "yhdeksänkymmentä"}
+
+
+FI_LETTERS = {"A": "aa", "B": "bee", "C": "see", "D": "dee", "E": "ee", "F": "äf", "G": "gee", "H": "hoo", "I": "ii",
+              "J": "jii", "K": "koo", "L": "äl", "M": "äm", "N": "än", "O": "oo", "P": "pee", "Q": "kuu", "R": "är",
+              "S": "äs", "T": "tee", "U": "uu", "V": "vee", "W": "kaksoisvee", "X": "äks", "Y": "yy", "Z": "tset",
+              "Å": "oo", "Ä": "ää", "Ö": "öö"}
+
+
+def fi_normalize(text):
+    # peliaika "51.31" luetaan muuten "51 piste 31" (yli 23 min ei ole kellonaika) → "51 31"
+    text = re.sub(r"(?<![\d.:])(\d{1,2})[.:](\d{2})(?![\d:]|\.\d)", r"\1 \2", text)
+    text = re.sub(r"(?<![\d.:])([2-9])1(?![\d:]|\.\d)", lambda m: f"{FI_TENS[m.group(1)]} yksi", text)
+    # yksittäinen kirjain joukkueen nimessä ("K-Espoo V" → "…vee", ei "viidenneltä")
+    text = re.sub(r"(?<![\w-])([A-ZÅÄÖ])(?![\w-]|\.\w)", lambda m: FI_LETTERS[m.group(1)], text)
+    return re.sub(r"\b([Ee])nsimmäi", lambda m: f"{m.group(1)}n-simmäi", text)
+
+
 def build_ssml(lang, voice, rate, segs):
-    """segs: [{"t": teksti, "fi": bool (nimi → suomalainen lukija), "brk": ms}]"""
+    """segs: [{"t": teksti, "fi": bool (nimi → suomalainen lukija), "brk": ms}]
+
+    Saman lukijan peräkkäinen teksti yhdistetään yhtenäisiksi lauseiksi: jos lause pilkotaan
+    useaan elementtiin, neuroääni katkoo rytmin ja ääntää sanoja ja lukuja väärin
+    (esim. "ensimmäinen" → "ensin i nen", "21" → "20 x")."""
     locale = "fi-FI" if lang == "fi" else "en-US"
     fi_voice = voice if lang == "fi" else FI_READER.get(voice, "fi-FI-HarriNeural")
-    rate_attr = f'{int(round((float(rate) - 1) * 100)):+d}%'
-    runs = []  # [(ääni, [osat])] – peräkkäiset saman lukijan osat yhteen <voice>-elementtiin
+    r = int(round((float(rate) - 1) * 100))
+    runs = []  # [(ääni, [osat])], osa = tekstiä tai ("brk", ms)
     for s in segs:
         if s.get("brk"):
-            part, v = f'<break time="{int(s["brk"])}ms"/>', (runs[-1][0] if runs else voice)
-        else:
-            text = s.get("t", "")
-            if not text.strip():
-                continue
-            v = fi_voice if s.get("fi") else voice
-            part = f'<prosody rate="{rate_attr}">{xml_esc(text)}</prosody>'
+            if runs:
+                runs[-1][1].append(("brk", int(s["brk"])))
+            continue
+        text = s.get("t", "")
+        if not text.strip() and not (runs and text):
+            continue
+        v = fi_voice if s.get("fi") else voice
         if runs and runs[-1][0] == v:
-            runs[-1][1].append(part)
+            parts = runs[-1][1]
+            if parts and isinstance(parts[-1], str):
+                parts[-1] += text
+            else:
+                parts.append(text)
         else:
-            runs.append((v, [part]))
-    body = "".join(f'<voice name="{xml_esc(v)}">{"".join(p)}</voice>' for v, p in runs)
+            runs.append((v, [text]))
+
+    def chunk(text, v):
+        text = " ".join(text.split())
+        t = xml_esc(fi_normalize(text) if v.startswith("fi-FI") else text)
+        return f'<prosody rate="{r:+d}%">{t}</prosody>' if r else t
+
+    body = []
+    for v, parts in runs:
+        inner = "".join(f'<break time="{p[1]}ms"/>' if isinstance(p, tuple) else chunk(p, v) for p in parts if isinstance(p, tuple) or p.strip())
+        body.append(f'<voice name="{xml_esc(v)}">{inner}</voice>')
     return (f'<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" '
-            f'xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="{locale}">{body}</speak>')
+            f'xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="{locale}">{"".join(body)}</speak>')
 
 
 def azure_tts(lang, voice, rate, segs):
