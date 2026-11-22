@@ -268,6 +268,96 @@ async function ocrLineup(env, dataUrl) {
   return JSON.parse(text);
 }
 
+// ---------------------------------------------------------------- kirjautuminen (salasana)
+// Salasana on Workerin salaisuus SITE_PASSWORD. Onnistuneen kirjautumisen jälkeen selaimeen
+// annetaan HMAC-allekirjoitettu eväste (30 vrk). Salasanan vaihto mitätöi vanhat kirjautumiset.
+const COOKIE = "kuulutus_auth";
+const SESSION_DAYS = 30;
+const PUBLIC_PATHS = new Set(["/login", "/logout", "/hyri-logo.png", "/favicon.png", "/apple-touch-icon.png"]);
+const enc = new TextEncoder();
+
+async function hmac(secret, data) {
+  const key = await crypto.subtle.importKey("raw", enc.encode(`kuulutus:${secret}`), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(data));
+  return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function safeEqual(a, b) {
+  const x = enc.encode(String(a)), y = enc.encode(String(b));
+  let diff = x.length ^ y.length;
+  for (let i = 0; i < Math.max(x.length, y.length); i++) diff |= (x[i] || 0) ^ (y[i] || 0);
+  return diff === 0;
+}
+async function makeSession(env) {
+  const exp = Date.now() + SESSION_DAYS * 864e5;
+  return `${exp}.${await hmac(env.SITE_PASSWORD, String(exp))}`;
+}
+async function isAuthed(request, env) {
+  if (!env.SITE_PASSWORD) return false;   // ei salasanaa asetettu → kaikki kiinni
+  const m = (request.headers.get("cookie") || "").match(new RegExp(`(?:^|;\\s*)${COOKIE}=([^;]+)`));
+  if (!m) return false;
+  const [exp, sig] = m[1].split(".");
+  if (!exp || !sig || +exp < Date.now()) return false;
+  return safeEqual(sig, await hmac(env.SITE_PASSWORD, exp));
+}
+const cookieHeader = (value, maxAge) => `${COOKIE}=${value}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Lax`;
+
+function loginPage({ error = "", notConfigured = false } = {}) {
+  const msg = notConfigured ? "Salasanaa ei ole asetettu palvelimelle (SITE_PASSWORD)." : error;
+  const html = `<!doctype html><html lang="fi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16181b"><meta name="robots" content="noindex">
+<title>HYRI Kuulutus – kirjaudu</title><link rel="icon" href="/favicon.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef2f5;--card:#fff;--ink:#121417;--muted:#5f6b76;--line:#dde3e8;--focus:#2f7de1;--bad:#d12f2f;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0c0e11;--card:#15181c;--ink:#eef2f5;--muted:#9aa6b2;--line:#2a3038;--focus:#5aa2f0;--bad:#ff6b6b;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font:16px/1.5 "Roboto",system-ui,sans-serif}
+.top{background:linear-gradient(180deg,#16181b,#26292e);height:38vh;min-height:220px;display:flex;align-items:center;justify-content:center;padding-top:env(safe-area-inset-top)}
+.top img{width:120px;height:120px;border-radius:50%;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.card{width:min(420px,calc(100% - 32px));margin:-48px auto 32px;background:var(--card);border-radius:18px;padding:28px 24px;box-shadow:0 10px 40px rgba(16,20,24,.15)}
+h1{font:800 26px/1.1 "Roboto Condensed",sans-serif;text-transform:uppercase;letter-spacing:.04em;margin:0 0 4px;text-align:center}
+p{margin:0 0 20px;color:var(--muted);text-align:center;font-size:14px}
+label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin-bottom:6px}
+input{width:100%;min-height:52px;padding:12px 14px;font:inherit;font-size:17px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px}
+input:focus{outline:none;border-color:var(--focus);box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 25%,transparent)}
+button{width:100%;min-height:54px;margin-top:16px;border:0;border-radius:12px;background:var(--ink);color:var(--card);font:700 17px/1 "Roboto",sans-serif;cursor:pointer}
+button:active{transform:scale(.98)}
+.err{background:color-mix(in srgb,var(--bad) 12%,transparent);color:var(--bad);border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:14px;text-align:center}
+</style></head><body>
+<div class="top"><img src="/hyri-logo.png" alt="HYRI Hockey"></div>
+<main class="card">
+<h1>HYRI Kuulutus</h1><p>Kirjaudu sisään jatkaaksesi.</p>
+${msg ? `<div class="err" role="alert">${msg}</div>` : ""}
+<form method="post" action="/login">
+<label for="pw">Salasana</label>
+<input id="pw" name="password" type="password" autocomplete="current-password" required autofocus>
+<button type="submit">Kirjaudu</button>
+</form></main></body></html>`;
+  return new Response(html, { status: msg ? 401 : 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex" } });
+}
+
+async function handleAuth(request, env, url) {
+  if (url.pathname === "/logout") {
+    return new Response(null, { status: 303, headers: { location: "/login", "set-cookie": cookieHeader("", 0) } });
+  }
+  if (url.pathname === "/login") {
+    if (!env.SITE_PASSWORD) return loginPage({ notConfigured: true });
+    if (request.method === "POST") {
+      const form = await request.formData();
+      if (safeEqual(form.get("password") || "", env.SITE_PASSWORD)) {
+        return new Response(null, { status: 303, headers: { location: "/", "set-cookie": cookieHeader(await makeSession(env), SESSION_DAYS * 86400) } });
+      }
+      await new Promise(r => setTimeout(r, 1200));   // hidastaa arvailua
+      return loginPage({ error: "Väärä salasana." });
+    }
+    if (await isAuthed(request, env)) return Response.redirect(new URL("/", url).toString(), 303);
+    return loginPage();
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------- reititys
 
 export default {
@@ -275,13 +365,21 @@ export default {
     const url = new URL(request.url);
     const q = url.searchParams;
     try {
+      // Kirjautuminen: kaikki muu paitsi kirjautumissivu ja logo vaatii voimassa olevan evästeen
+      const auth = await handleAuth(request, env, url);
+      if (auth) return auth;
+      if (PUBLIC_PATHS.has(url.pathname)) return env.ASSETS.fetch(request);
+      if (!(await isAuthed(request, env))) {
+        if (url.pathname.startsWith("/api/")) return json({ error: "Kirjautuminen vaaditaan.", login: true }, 401);
+        return Response.redirect(new URL("/login", url).toString(), 302);
+      }
       if (request.method === "GET") {
         if (url.pathname === "/api/games") return json(await gamesOfDay(q.get("date") || new Date().toISOString().slice(0, 10)));
         if (url.pathname === "/api/rosters") return json(await rosters(+q.get("gameid"), +q.get("season") || await currentSeason()));
         if (url.pathname === "/api/events") return json(await gameEvents(+q.get("gameid"), +q.get("season") || await currentSeason()));
         if (url.pathname === "/api/status") {
           const tts = !!(env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION);
-          return json({ ocr: !!env.ANTHROPIC_API_KEY, tts, engine: tts ? "azure" : "" });
+          return json({ ocr: !!env.ANTHROPIC_API_KEY, tts, engine: tts ? "azure" : "", auth: true });
         }
         if (url.pathname === "/api/voices") return json(env.AZURE_SPEECH_KEY ? VOICES : { fi: [], en: [] });
       }

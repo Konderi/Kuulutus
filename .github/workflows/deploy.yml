@@ -28,3 +28,8 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy
+          # Sivuston salasana GitHub-salaisuudesta Workerin salaisuudeksi
+          secrets: |
+            SITE_PASSWORD
+        env:
+          SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}

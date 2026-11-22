@@ -5,11 +5,11 @@
   "main": "worker/index.js",
   "compatibility_date": "2025-11-01",
   "compatibility_flags": ["nodejs_compat"],
-  // Käyttöliittymä (static/index.html) tarjoillaan suoraan; /api/* menee Workerille
+  // Kaikki pyynnöt kulkevat Workerin kautta (salasanasuojaus), joka tarjoilee käyttöliittymän (static/)
   "assets": {
     "directory": "./static",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": true
   },
   "routes": [
     { "pattern": "kuulutus.konderi.fi", "custom_domain": true }
@@ -21,5 +21,6 @@
   // Workers & Pages → kuulutus → Settings → Variables and Secrets
   //   AZURE_SPEECH_KEY   (pakollinen puheäänelle)
   //   ANTHROPIC_API_KEY  (valinnainen, pöytäkirjan kuvan lukeminen)
+  //   SITE_PASSWORD      (sivuston salasana; asetetaan GitHub-salaisuudesta julkaisun yhteydessä)
   "observability": { "enabled": true }
 }

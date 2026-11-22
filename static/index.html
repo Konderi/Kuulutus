@@ -118,7 +118,7 @@ input[type=checkbox]:checked::after{transform:translateX(18px)}
 .toggles{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:2px 16px}
 
 /* --- painikkeet --- */
-button.b,label.b{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--line);
+button.b,label.b,a.b{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--line);
   background:var(--surface);color:var(--ink);font:600 15px/1 var(--f-body);cursor:pointer;transition:transform .08s,background .15s,border-color .15s;white-space:nowrap;text-decoration:none}
 button.b:hover,label.b:hover{border-color:var(--muted)}
 button.b:active,label.b:active{transform:scale(.97)}
@@ -293,6 +293,7 @@ details.help p{margin:4px 0 0}
     </div>
     <p class="small muted" style="margin:8px 0 0">Kokoonpanot syötetään sitten käsin, listana tai pöytäkirjan kuvasta.</p>
   </div>
+  <div class="row" id="logoutRow" hidden style="justify-content:center;margin-top:8px"><a class="b ghost s" href="/logout">Kirjaudu ulos</a></div>
 </section>
 
 <!-- ============ KOKOONPANOT ============ -->
@@ -475,6 +476,7 @@ function sortByNr(a,b){ return (parseInt(a.nr)||999) - (parseInt(b.nr)||999); }
 async function api(url, opts){
   const r = await fetch(url, opts);
   const j = await r.json().catch(() => ({error: "Virheellinen vastaus palvelimelta"}));
+  if (r.status === 401 && j.login) { location.href = "/login"; throw new Error("Kirjautuminen vaaditaan."); }
   if (!r.ok) throw new Error(j.error || r.statusText);
   return j;
 }
@@ -909,7 +911,7 @@ let playToken = 0;
 async function initTts(){
   try {
     const s = await api("/api/status");
-    TTS = !!s.tts; ENGINE = s.engine || "";
+    TTS = !!s.tts; ENGINE = s.engine || ""; $("#logoutRow").hidden = !s.auth;
     if (TTS) AZ_VOICES = await api("/api/voices");
   } catch {}
   renderVoices();
@@ -954,6 +956,7 @@ function getAudio(b){
   const req = ttsReq(b), key = JSON.stringify(req);
   if (!audioCache.has(key)) {
     const p = fetch("/api/tts", {method:"POST", headers:{"content-type":"application/json"}, body: key}).then(async r => {
+      if (r.status === 401) { location.href = "/login"; throw new Error("Kirjautuminen vaaditaan."); }
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "Puhesynteesi epäonnistui");
       return URL.createObjectURL(await r.blob());
     });
