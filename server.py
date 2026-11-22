@@ -250,7 +250,7 @@ VOICE_STYLE = {"fi-FI-Harper:MAI-Voice-2.1": "narrator"}  # mstts:express-as kuu
 # Azuren suomiäänet kompastelevat tiettyihin sanoihin (mitattu puheentunnistuksella):
 #  - ykköseen päättyvät luvut 21–91 ("21" → "20 taiksi") → kirjoitetaan "kaksikymmentä yksi"
 #  - "ensimmäinen" ("ensin i nen") → "en-simmäinen"
-#  - peliaika "51.31" ("51 piste 31") → "51 31"
+#  - peliaika ("14.35" → "neljästätoista…") → sanoina "neljätoista kolmekymmentäviisi"
 #  - yksittäinen kirjain ("K-Espoo V" → "viidenneltä") → kirjaimen nimi ("vee")
 FI_TENS = {"2": "kaksikymmentä", "3": "kolmekymmentä", "4": "neljäkymmentä", "5": "viisikymmentä",
            "6": "kuusikymmentä", "7": "seitsemänkymmentä", "8": "kahdeksankymmentä", "9": "yhdeksänkymmentä"}
@@ -262,9 +262,30 @@ FI_LETTERS = {"A": "aa", "B": "bee", "C": "see", "D": "dee", "E": "ee", "F": "ä
               "Å": "oo", "Ä": "ää", "Ö": "öö"}
 
 
+FI_ONES = ["nolla", "yksi", "kaksi", "kolme", "neljä", "viisi", "kuusi", "seitsemän", "kahdeksan", "yhdeksän"]
+
+
+def fi_number(n):
+    """0–99 sanoina perusmuodossa: 35 → "kolmekymmentäviisi"."""
+    if n < 10:
+        return FI_ONES[n]
+    if n == 10:
+        return "kymmenen"
+    if n < 20:
+        return FI_ONES[n - 10] + "toista"
+    tens, ones = divmod(n, 10)
+    return FI_ONES[tens] + "kymmentä" + (FI_ONES[ones] if ones else "")
+
+
+def fi_time(m, s):
+    """Peliaika sanoina: 14.35 → "neljätoista kolmekymmentäviisi", 45.01 → "neljäkymmentäviisi nolla yksi"."""
+    return f"{fi_number(m)} {fi_number(s) if s >= 10 else 'nolla ' + FI_ONES[s]}"
+
+
 def fi_normalize(text, classic=True):
-    # peliaika "51.31" luetaan muuten "51 piste 31" (yli 23 min ei ole kellonaika) → "51 31"
-    text = re.sub(r"(?<![\d.:])(\d{1,2})[.:](\d{2})(?![\d:]|\.\d)", r"\1 \2", text)
+    # peliaika kirjoitetaan sanoina perusmuodossa: muuten ääni taivuttaa luvun
+    # ("14.35" → "neljästätoista…", "24.41" → "kahdenkymmenen neljän…", "51.31" → "51 piste 31")
+    text = re.sub(r"(?<![\d.:])(\d{1,2})[.:]([0-5]\d)(?![\d:]|\.\d)", lambda m: fi_time(int(m.group(1)), int(m.group(2))), text)
     if classic:
         text = re.sub(r"(?<![\d.:])([2-9])1(?![\d:]|\.\d)", lambda m: f"{FI_TENS[m.group(1)]} yksi", text)
     # yksittäinen kirjain joukkueen nimessä ("K-Espoo V" → "…vee", ei "viidenneltä")

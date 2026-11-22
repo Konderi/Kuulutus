@@ -156,12 +156,25 @@ const xmlEsc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").repla
 // Azuren suomiäänet kompastelevat tiettyihin sanoihin (mitattu puheentunnistuksella):
 //  - ykköseen päättyvät luvut 21–91 ("21" → "20 taiksi") → "kaksikymmentä yksi"
 //  - "ensimmäinen" ("ensin i nen") → "en-simmäinen"
-//  - peliaika "51.31" ("51 piste 31") → "51 31"
+//  - peliaika ("14.35" → "neljästätoista…") → sanoina "neljätoista kolmekymmentäviisi"
 //  - yksittäinen kirjain ("K-Espoo V" → "viidenneltä") → kirjaimen nimi ("vee")
 const FI_TENS = { 2: "kaksikymmentä", 3: "kolmekymmentä", 4: "neljäkymmentä", 5: "viisikymmentä", 6: "kuusikymmentä", 7: "seitsemänkymmentä", 8: "kahdeksankymmentä", 9: "yhdeksänkymmentä" };
 const FI_LETTERS = { A: "aa", B: "bee", C: "see", D: "dee", E: "ee", F: "äf", G: "gee", H: "hoo", I: "ii", J: "jii", K: "koo", L: "äl", M: "äm", N: "än", O: "oo", P: "pee", Q: "kuu", R: "är", S: "äs", T: "tee", U: "uu", V: "vee", W: "kaksoisvee", X: "äks", Y: "yy", Z: "tset", "Å": "oo", "Ä": "ää", "Ö": "öö" };
+const FI_ONES = ["nolla", "yksi", "kaksi", "kolme", "neljä", "viisi", "kuusi", "seitsemän", "kahdeksan", "yhdeksän"];
+// 0–99 sanoina perusmuodossa: 35 → "kolmekymmentäviisi"
+function fiNumber(n) {
+  if (n < 10) return FI_ONES[n];
+  if (n === 10) return "kymmenen";
+  if (n < 20) return FI_ONES[n - 10] + "toista";
+  const t = Math.floor(n / 10), o = n % 10;
+  return FI_ONES[t] + "kymmentä" + (o ? FI_ONES[o] : "");
+}
+// Peliaika sanoina: 14.35 → "neljätoista kolmekymmentäviisi", 45.01 → "neljäkymmentäviisi nolla yksi"
+const fiTime = (m, s) => `${fiNumber(m)} ${s >= 10 ? fiNumber(s) : "nolla " + FI_ONES[s]}`;
+
 function fiNormalize(text, classic = true) {
-  text = text.replace(/(?<![\d.:])(\d{1,2})[.:](\d{2})(?![\d:]|\.\d)/g, "$1 $2");
+  // peliaika sanoina perusmuodossa, muuten ääni taivuttaa luvun ("14.35" → "neljästätoista…")
+  text = text.replace(/(?<![\d.:])(\d{1,2})[.:]([0-5]\d)(?![\d:]|\.\d)/g, (_, m, s) => fiTime(+m, +s));
   if (classic) text = text.replace(/(?<![\d.:])([2-9])1(?![\d:]|\.\d)/g, (_, d) => `${FI_TENS[d]} yksi`);
   text = text.replace(/(?<![\p{L}\p{N}_-])([A-ZÅÄÖ])(?![\p{L}\p{N}_-]|\.[\p{L}\p{N}_])/gu, (_, c) => FI_LETTERS[c]);
   return classic ? text.replace(/(^|[^\p{L}])([Ee])nsimmäi/gu, (_, pre, e) => `${pre}${e}n-simmäi`) : text;
