@@ -229,6 +229,13 @@ button.b:disabled{opacity:.45;cursor:default;transform:none}
 .pen-who{font-weight:600;margin:2px 0}
 .pen-time{font-size:13px;color:var(--muted)}
 .pen-time b{color:var(--ink);font-variant-numeric:tabular-nums}
+.man-group{padding:12px 0;border-top:1px solid var(--line)}
+.man-group:first-of-type{border-top:0;padding-top:0}
+.man-group h3{font:700 12px/1 var(--f-head);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.man-row{display:flex;gap:8px;margin-top:8px}
+.man-row select{flex:1;min-width:0}
+.man-row .b{flex:none}
+#freeText{min-height:64px}
 .man-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .man-grid .b{white-space:normal;text-align:center;line-height:1.2;padding:8px 12px;min-height:52px}
 .man-saves{display:flex;gap:6px}
@@ -441,18 +448,62 @@ details.help p{margin:4px 0 0}
   </div>
   <div class="card">
     <div class="card-head"><h2>Muut kuulutukset</h2></div>
-    <div class="man-grid">
-      <button class="b" data-man="full">Joukkueet täysilukuiset</button>
-      <button class="b" data-man="homeFull">Koti täysilukuinen</button>
-      <button class="b" data-man="awayFull">Vieras täysilukuinen</button>
-      <button class="b" data-man="even">Joukkueet tasalukuiset</button>
-      <button class="b" data-man="respect">Kunnioita peliä</button>
-      <button class="b" data-man="min1">1. erää jäljellä 1 min</button>
-      <button class="b" data-man="min2">2. erää jäljellä 1 min</button>
-      <button class="b" data-man="min3">3. erää jäljellä 2 min</button>
-      <div class="man-saves"><button class="b" data-man="saves">Torjunnat</button><select id="savesPeriod" aria-label="Erä"><option value="1">1.</option><option value="2">2.</option><option value="3">3.</option><option value="4">JA</option><option value="0">Kaikki</option></select></div>
-      <button class="b" data-man="crowd">Yleisömäärä</button>
-      <button class="b" data-man="final">Lopputulos</button>
+
+    <div class="man-group">
+      <h3>Vapaa kuulutus</h3>
+      <textarea id="freeText" rows="2" placeholder="Kirjoita kuulutus, esim. tuomarin pyytämä tiedote"></textarea>
+      <div class="row" style="margin-top:8px"><button class="b p" data-man="free">▶ Kuuluta</button><button class="b s ghost" id="freeClear">Tyhjennä</button></div>
+    </div>
+
+    <div class="man-group">
+      <h3>Voimasuhde</h3>
+      <div class="man-grid">
+        <button class="b" data-man="full">Joukkueet täysilukuiset</button>
+        <button class="b" data-man="homeFull">Koti täysilukuinen</button>
+        <button class="b" data-man="awayFull">Vieras täysilukuinen</button>
+        <button class="b" data-man="even">Joukkueet tasalukuiset</button>
+      </div>
+    </div>
+
+    <div class="man-group">
+      <h3>Erä ja aika</h3>
+      <div class="man-grid">
+        <button class="b" data-man="respect">Kunnioita peliä</button>
+        <button class="b" data-man="min1">1. erää jäljellä 1 min</button>
+        <button class="b" data-man="min2">2. erää jäljellä 1 min</button>
+        <button class="b" data-man="min3">3. erää jäljellä 2 min</button>
+        <button class="b" data-man="toEnd">Aikalisä päättynyt</button>
+      </div>
+    </div>
+
+    <div class="man-group">
+      <h3>Maali</h3>
+      <div class="man-row"><select id="disallowReason" aria-label="Hylkäyksen syy"></select><button class="b" data-man="disallow">Ei maalia</button></div>
+      <div class="man-row"><select id="fixGoal" aria-label="Korjattava maali"></select><button class="b" data-man="fix">Kuuluta korjaus</button></div>
+      <p class="small muted" style="margin:4px 0 0">Korjaus luetaan tulospalvelun nykyisillä tiedoilla. Kun TiTussa muutetaan jo kirjattua maalia, korjaus tulee myös jonoon automaattisesti.</p>
+    </div>
+
+    <div class="man-group">
+      <h3>Jatkoaika ja voittomaalikilpailu</h3>
+      <div class="man-row"><select id="otLen" aria-label="Jatkoajan pituus"><option value="5">5 min jatkoaika</option><option value="10">10 min jatkoaika</option><option value="15">15 min jatkoerä</option><option value="20">20 min jatkoerä</option></select><button class="b" data-man="ot">Jatkoaika</button></div>
+      <div class="man-row"><select id="soStart" aria-label="Aloittava joukkue"><option value="">Aloittaja: ei kuuluteta</option><option value="home">Aloittaa: koti</option><option value="away">Aloittaa: vieras</option></select><button class="b" data-man="so">Voittomaalikilpailu</button></div>
+    </div>
+
+    <div class="man-group">
+      <h3>Parhaat pelaajat</h3>
+      <div class="man-row"><select id="bestAway" aria-label="Vierasjoukkueen paras"></select><select id="bestHome" aria-label="Kotijoukkueen paras"></select></div>
+      <div class="row" style="margin-top:8px"><button class="b" data-man="best">Kuuluta parhaat pelaajat</button><span class="small muted">Hävinnyt joukkue kuulutetaan ensin.</span></div>
+    </div>
+
+    <div class="man-group">
+      <h3>Pelikello ja ottelun loppu</h3>
+      <div class="man-grid">
+        <button class="b" data-man="clockDown">Käsiajanotto</button>
+        <button class="b" data-man="clockUp">Pelikello toiminnassa</button>
+        <div class="man-saves"><button class="b" data-man="saves">Torjunnat</button><select id="savesPeriod" aria-label="Erä"><option value="1">1.</option><option value="2">2.</option><option value="3">3.</option><option value="4">JA</option><option value="0">Kaikki</option></select></div>
+        <button class="b" data-man="crowd">Yleisömäärä</button>
+        <button class="b" data-man="final">Lopputulos</button>
+      </div>
     </div>
     <div class="script compact" id="manPreview" style="margin-top:12px"></div>
   </div>
@@ -956,7 +1007,7 @@ if (synth) synth.onvoiceschanged = () => { if (!TTS) renderVoices(); };
 $("#voice").onchange = e => { S.voices[S.lang] = e.target.value; save(); renderVoices(); };
 
 // mood: maalit innostuneesti, muut kuulutukset jämäkästi (ElevenLabs-tyyli)
-function ttsReq(b){ return {lang: S.lang, voice: curVoice(), rate: S.rate, style: S.style, mood: b.kind === "Goal" ? "excited" : "confident", segs: b.segs}; }
+function ttsReq(b){ return {lang: S.lang, voice: curVoice(), rate: S.rate, style: S.style, mood: b.kind === "Goal" && !b.fix ? "excited" : "confident", segs: b.segs}; }
 function getAudio(b){
   const req = ttsReq(b), key = JSON.stringify(req);
   if (!audioCache.has(key)) {
@@ -1056,19 +1107,19 @@ const ordinal = (n, lang) => (lang === "fi" ? ORD_FI : ORD_EN)[n-1] || `${n}.`;
 const EVP = {
   fi: {period:p => p > 3 ? "Jatkoaika" : `${p}. erä`, clock:s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`,
     say:s => `${Math.floor(s/60)}.${String(s%60).padStart(2,"0")}`,
-    label:{Goal:"Maali", Penalty:"Rangaistus", PG:"Rangaistukset", Timeout:"Aikalisä", GK:"Maalivahti", PX:"Voimasuhde"},
+    label:{Goal:"Maali", GoalFix:"Korjaus", Penalty:"Rangaistus", PG:"Rangaistukset", Timeout:"Aikalisä", GK:"Maalivahti", PX:"Voimasuhde"},
     gtype:{YV:"ylivoimalla", AV:"alivoimalla", TM:"tyhjään maaliin", RL:"rangaistuslaukauksesta"},
     pen:m => ({2:"2 minuuttia", 4:"2 + 2 minuuttia", 5:"viisi minuuttia", 10:"10 minuutin käytösrangaistus", 20:"pelirangaistus", 25:"ottelurangaistus"}[m] || `${m} minuuttia`)},
   en: {period:p => p > 3 ? "Overtime" : `Period ${p}`, clock:s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`,
     say:s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`,
-    label:{Goal:"Goal", Penalty:"Penalty", PG:"Penalties", Timeout:"Timeout", GK:"Goaltender", PX:"Strength"},
+    label:{Goal:"Goal", GoalFix:"Correction", Penalty:"Penalty", PG:"Penalties", Timeout:"Timeout", GK:"Goaltender", PX:"Strength"},
     gtype:{YV:"power play", AV:"short-handed", TM:"empty net", RL:"penalty shot"},
     pen:m => ({2:"2 minutes", 4:"2 plus 2 minutes", 5:"5 minutes", 10:"a 10-minute misconduct", 20:"a game misconduct", 25:"a match penalty"}[m] || `${m} minutes`)},
 };
 let EV = null, evTimer = null, evTried = false, STRENGTH = null;
 const evQueue = [];   // [{key, time}] – time = tapahtuman peliaika
 let ITEMS = [];       // kuulutettavat kohteet (samanaikaiset rangaistukset yhdistetty)
-const evGroup = t => t && t.startsWith("GK") ? "GK" : t === "PG" ? "Penalty" : t;
+const evGroup = t => t && t.startsWith("GK") ? "GK" : t === "PG" ? "Penalty" : t === "GoalFix" ? "Goal" : t;
 
 function evTeamName(side){ return S.teams[side]?.name || (EV ? EV[side] : "") || ""; }
 function evWho(b, P, side, pp){
@@ -1168,6 +1219,10 @@ function buildItems(events){
     items.push({key: list.length > 1 ? `PG_${t}_${list.length}` : list[0].key, type: list.length > 1 ? "PG" : "Penalty", time: +t, period: list[0].period, events: list, strength: st.penState[t]});
   }
   const plen = (EV?.periodLen || 20) * 60;
+  for (const fx of S.ev.fixes || []) {
+    const g = events.find(e => e.key === fx.goalKey);
+    if (g) items.push({key: fx.key, type: "GoalFix", time: fx.time, period: Math.min(4, Math.floor(Math.max(0, fx.time - 1) / plen) + 1), events: [g], ord: 2});
+  }
   st.items.forEach(x => items.push({...x, period: Math.min(4, Math.floor(Math.max(0, x.time - 1) / plen) + 1), events: [x], ord: 1}));
   return items.sort((a, b) => a.time - b.time || (a.ord || 0) - (b.ord || 0) || a.key.localeCompare(b.key));
 }
@@ -1185,6 +1240,18 @@ function itemBlock(it, lang){
   const b = Blk(`${E.label[it.type] || E.label[evGroup(it.type)] || it.type} · ${E.period(it.period)} · ${E.clock(it.time)}`);
   b.kind = evGroup(it.type);
   const time = () => txt(b, (fi ? "Aika " : "Time: ") + E.say(it.time) + ".");
+  if (it.type === "GoalFix") {
+    // ohje A2: "korjaus ___:n ensimmäiseen maaliin ajassa 36:12, maalintekijä #88 BB, syöttäjinä #99 AA ja #77 CC"
+    const n = e.side === "home" ? e.home : e.away;
+    b.fix = true;
+    txt(b, fi ? `Korjaus maaliin ajassa ${E.say(e.time)}.` : `Correction to the goal at ${E.say(e.time)}.`);
+    br(b, 300);
+    if (fi) { nameSeg(b, evTeamName(e.side)); txt(b, `, ${ordinal(n, "fi")} maali.`); }
+    else { txt(b, `${ordinal(n, "en").replace(/^./, c => c.toUpperCase())} goal for `); nameSeg(b, evTeamName(e.side)); txt(b, "."); }
+    br(b, 300); txt(b, fi ? "Maalintekijä " : "Scored by "); evWho(b, P, e.side, e.scorer); txt(b, ".");
+    if (e.assists.length) { br(b, 300); txt(b, fi ? (e.assists.length > 1 ? "Syöttäjinä " : "Syöttäjänä ") : "Assisted by "); evList(b, P, e.side, e.assists); txt(b, "."); }
+    return b;
+  }
   if (it.type === "Goal") {
     // ”HYRI, neljäs maali (ylivoimalla), maalintekijä #99 AA, syöttäjät #88 BB ja #77 CC, aika 36:12”
     const n = e.side === "home" ? e.home : e.away;
@@ -1233,7 +1300,40 @@ function itemBlock(it, lang){
 // ---- muut ohjeen kuulutukset
 function manualBlock(kind, lang){
   const fi = lang === "fi", P = PH[lang];
-  const b = Blk({full:"Voimasuhde", homeFull:"Voimasuhde", awayFull:"Voimasuhde", even:"Voimasuhde", respect:"Kunnioita peliä", min1:"Erää jäljellä", min2:"Erää jäljellä", min3:"Erää jäljellä", saves:"Torjunnat", crowd:"Yleisömäärä", final:"Lopputulos"}[kind]);
+  const b = Blk({full:"Voimasuhde", homeFull:"Voimasuhde", awayFull:"Voimasuhde", even:"Voimasuhde", respect:"Kunnioita peliä", min1:"Erää jäljellä", min2:"Erää jäljellä", min3:"Erää jäljellä", saves:"Torjunnat", crowd:"Yleisömäärä", final:"Lopputulos",
+    free:"Vapaa kuulutus", toEnd:"Aikalisä", disallow:"Ei maalia", fix:"Korjaus", ot:"Jatkoaika", so:"Voittomaalikilpailu", best:"Parhaat pelaajat", clockDown:"Pelikello", clockUp:"Pelikello"}[kind]);
+  if (kind === "free") { const t = $("#freeText").value.trim(); if (!t) { b.html = '<span class="muted">Kirjoita ensin kuulutus.</span>'; b.silent = true; return b; } txt(b, t); }
+  if (kind === "toEnd") txt(b, fi ? "Aikalisä päättynyt." : "The timeout has ended.");
+  if (kind === "clockDown") txt(b, fi ? "Arvoisa yleisö, peliaikaa seurataan väliaikaisesti käsiajanotolla." : "Ladies and gentlemen, game time is temporarily being kept by hand.");
+  if (kind === "clockUp") txt(b, fi ? "Arvoisa yleisö, pelikello on jälleen toiminnassa." : "Ladies and gentlemen, the game clock is working again.");
+  if (kind === "disallow") { const r = DISALLOW[+$("#disallowReason").value] || DISALLOW[0]; txt(b, fi ? `Ei maalia. ${r.fi}.` : `No goal. ${r.en}.`); }
+  if (kind === "ot") {
+    const n = +$("#otLen").value, fiLen = {5:"viiden minuutin jatkoaika", 10:"kymmenen minuutin jatkoaika", 15:"viidentoista minuutin jatkoerä", 20:"kahdenkymmenen minuutin jatkoerä"}[n];
+    txt(b, fi ? `Koska varsinaisen peliajan jälkeen peli on tasan, seuraa kahden minuutin tauon jälkeen ${fiLen} maalista poikki -periaatteella.`
+              : `As the game is tied after regulation time, there will be a ${n}-minute sudden-death overtime after a two-minute break.`);
+  }
+  if (kind === "so") {
+    txt(b, fi ? "Koska peli on tasan, seuraa voittomaalikilpailu." : "As the game is tied, there will be a shootout.");
+    br(b); txt(b, fi ? "Kumpikin joukkue lähettää vuorollaan kolme eri pelaajaa suorittamaan voittomaalilaukauksen. Joukkue, joka tekee voittomaalikilpailussa enemmän maaleja, on ottelun voittaja."
+                     : "Each team will send three different players in turn to take a shot. The team scoring more goals in the shootout wins the game.");
+    br(b); txt(b, fi ? "Mikäli ottelu on edelleen tasan kolmen kierroksen jälkeen, kilpailua jatketaan pelaaja kerrallaan, kunnes ratkaisu syntyy."
+                     : "If the game is still tied after three rounds, the shootout continues one player at a time until there is a winner.");
+    const st = $("#soStart").value;
+    if (st) { br(b); nameSeg(b, evTeamName(st)); txt(b, fi ? " aloittaa voittomaalikilpailun." : " will shoot first."); }
+  }
+  if (kind === "best") {
+    const picks = {home: $("#bestHome").value, away: $("#bestAway").value};
+    if (!picks.home && !picks.away) { b.html = '<span class="muted">Valitse parhaat pelaajat.</span>'; b.silent = true; return b; }
+    const h = EV?.homeGoals ?? 0, a = EV?.awayGoals ?? 0;
+    const order = h > a ? ["away", "home"] : h < a ? ["home", "away"] : ["away", "home"];   // hävinnyt joukkue ensin
+    txt(b, fi ? "Tässä ottelussa palkitaan kummastakin joukkueesta paras pelaaja." : "The best player of each team will now be awarded.");
+    for (const side of order) { if (!picks[side]) continue; br(b, 600); nameSeg(b, evTeamName(side)); txt(b, ", "); whoInto(b, P, S.teams[side], picks[side], false); txt(b, "."); }
+  }
+  if (kind === "fix") {
+    const it = ITEMS.find(x => x.type === "Goal" && x.key === $("#fixGoal").value);
+    if (!it) { b.html = '<span class="muted">Valitse korjattava maali.</span>'; b.silent = true; return b; }
+    return itemBlock({...it, type: "GoalFix"}, lang);
+  }
   // voimasuhteen kuulutukset suoraan pelitilanteessa (ohjeen kohta F), TiTun kellosta riippumatta
   if (kind === "full") txt(b, fi ? "Joukkueet täysilukuiset." : "Both teams at full strength.");
   if (kind === "even") txt(b, fi ? "Joukkueet tasalukuiset." : "Teams at even strength.");
@@ -1263,6 +1363,34 @@ function manualBlock(kind, lang){
   }
   return b;
 }
+// Kuulutusohjeen kohta B: maalin hylkäämisen syyt
+const DISALLOW = [
+  {fi: "Kiekko ei ylittänyt maaliviivaa", en: "The puck did not cross the goal line"},
+  {fi: "Maali pois paikaltaan ennen kiekkoa", en: "The goal was displaced before the puck went in"},
+  {fi: "Kiekko maalissa erän tai peliajan päättymisen jälkeen", en: "The puck went in after the end of the period"},
+  {fi: "Kiekko ohjattiin maaliin kädellä", en: "The puck was directed in with a hand"},
+  {fi: "Kiekko potkaistiin maaliin", en: "The puck was kicked in"},
+  {fi: "Kiekko maaliin erotuomarista", en: "The puck went in off an official"},
+  {fi: "Kiekko pelattiin maaliin korkealla mailalla", en: "The puck was played in with a high stick"},
+  {fi: "Pelaaja maalialueella ennen kiekkoa", en: "A player was in the goal crease"},
+  {fi: "Pelikatko ennen kuin kiekko maalissa", en: "Play was stopped before the puck went in"},
+];
+$("#disallowReason").innerHTML = DISALLOW.map((r, i) => `<option value="${i}">${esc(r.fi)}</option>`).join("");
+$("#freeClear").onclick = () => { $("#freeText").value = ""; $("#freeText").focus(); };
+function renderManualSelects(){
+  const E = EVP[S.lang];
+  const goals = ITEMS.filter(x => x.type === "Goal").slice().reverse();
+  const cur = $("#fixGoal").value;
+  $("#fixGoal").innerHTML = goals.length ? goals.map(it => { const e = it.events[0]; return `<option value="${esc(it.key)}">${E.clock(it.time)} ${esc(evTeamName(e.side))} – #${esc(e.scorer?.nr || "?")} ${esc(e.scorer ? titleCase(e.scorer.last) : "")}</option>`; }).join("") : '<option value="">Ei maaleja</option>';
+  if (goals.some(it => it.key === cur)) $("#fixGoal").value = cur;
+  for (const side of ["home", "away"]) {
+    const sel = $(side === "home" ? "#bestHome" : "#bestAway"), prev = sel.value;
+    const players = S.teams[side].players.filter(p => p.nr).slice().sort(sortByNr);
+    sel.innerHTML = `<option value="">${esc(evTeamName(side) || (side === "home" ? "Koti" : "Vieras"))}: paras pelaaja</option>` + players.map(p => `<option value="${esc(p.nr)}">#${esc(p.nr)} ${esc(fullName(p))}</option>`).join("");
+    if (players.some(p => p.nr === prev)) sel.value = prev;
+  }
+}
+
 document.querySelectorAll("[data-man]").forEach(btn => btn.onclick = () => {
   const b = manualBlock(btn.dataset.man, S.lang);
   $("#manPreview").innerHTML = `<div class="blk" id="manBlk"><div class="txt"><h4>${esc(b.h)}</h4>${b.html}</div></div>`;
@@ -1275,7 +1403,14 @@ async function fetchEvents(){
   try {
     const d = await api(`/api/events?gameid=${S.game.id}&season=${S.game.season || 0}`);
     const firstLoad = S.ev.gameId !== S.game.id;
-    if (firstLoad) { S.ev.gameId = S.game.id; S.ev.seen = {}; S.ev.read = {}; S.ev.manualEnded = {}; }
+    if (firstLoad) { S.ev.gameId = S.game.id; S.ev.seen = {}; S.ev.read = {}; S.ev.manualEnded = {}; S.ev.goalSig = {}; S.ev.fixes = []; }
+    // Maalikorjaukset: jo kirjatun maalin tekijä tai syöttäjät muuttuvat TiTussa → korjauskuulutus (ohje: kaikki muutokset kuulutetaan)
+    S.ev.goalSig ||= {}; S.ev.fixes ||= [];
+    for (const e of d.events.filter(x => x.type === "Goal")) {
+      const sig = [e.scorer?.nr || "", ...(e.assists || []).map(x => x.nr)].join(",");
+      if (!firstLoad && S.ev.goalSig[e.key] !== undefined && S.ev.goalSig[e.key] !== sig) S.ev.fixes.push({key: `FIX_${e.key}_${sig}`, goalKey: e.key, time: d.gameTime || e.time});
+      S.ev.goalSig[e.key] = sig;
+    }
     const hadEV = !!EV;
     EV = d; ITEMS = buildItems(d.events);
     // Jo tapahtuneet merkitään nähdyiksi ensimmäisellä haulla, jotta niitä ei kuuluteta jälkikäteen
@@ -1301,7 +1436,7 @@ function renderEvents(){
   $("#btnEvNext").textContent = evQueue.length ? `▶ Kuuluta jono (${evQueue.length})` : "Jono tyhjä";
   $("#btnEvNext").disabled = !evQueue.length;
   $("#navBadge").hidden = !evQueue.length; $("#navBadge").textContent = evQueue.length;
-  renderPenalties();
+  renderPenalties(); renderManualSelects();
   if (!EV) { $("#evScore").textContent = "–"; $("#evList").innerHTML = '<p class="muted small">Ei tapahtumia.</p>'; return; }
   const E = EVP[S.lang];
   if (EV.playedPeriods && !$("#savesPeriod").dataset.touched) $("#savesPeriod").value = String(Math.min(EV.playedPeriods, 4));
