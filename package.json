@@ -2,7 +2,7 @@
   "name": "kuulutus",
   "private": true,
   "version": "1.0.0",
-  "description": "Jääkiekon kuulutusapuri: kokoonpanot ja pelitapahtumat Leijonat-tulospalvelusta, puheääni Azure Speechillä",
+  "description": "Jääkiekon kuulutusapuri: kokoonpanot ja pelitapahtumat Leijonat-tulospalvelusta, puheääni ElevenLabsilla",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
