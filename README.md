@@ -3,7 +3,7 @@
 HyRin junioriotteluiden kuulutusapuri. Sovellus hakee ottelun, kokoonpanot ja pelitapahtumat Leijonien tulospalvelusta (TITU). Kuulutukset muodostetaan Jääkiekkoliiton ohjeen *Kuulutusohjeet – kotimaiset ottelut* (28.08.2023) mukaisesti ja luetaan ääneen suomalaisella kuuluttajaäänellä.
 
 **Käytössä:** https://kuulutus.konderi.fi (salasanasuojattu)
-**Käyttöohje:** [docs/Home.md](docs/Home.md)
+**Käyttöohje:** [GitHub Wiki](https://github.com/Konderi/Kuulutus/wiki) (lähde: [docs/](docs/Home.md))
 
 ## Ominaisuudet
 
@@ -28,7 +28,7 @@ HyRin junioriotteluiden kuulutusapuri. Sovellus hakee ottelun, kokoonpanot ja pe
 | [server.py](server.py) | Sama rajapinta paikalliseen kehitykseen (Pythonin vakiokirjasto) |
 | [wrangler.jsonc](wrangler.jsonc) | Workerin asetukset ja domain `kuulutus.konderi.fi` |
 | [.github/workflows/deploy.yml](.github/workflows/deploy.yml) | Automaattinen julkaisu `main`-haarasta |
-| [docs/](docs/) | Käyttöohje (wiki) |
+| [docs/](docs/) | Käyttöohjeen lähde. Muutokset tehdään täällä ja kopioidaan GitHubin Wikiin. |
 
 Selain ei voi kutsua TiTua suoraan, koska tulospalvelu ei lähetä CORS-otsakkeita. Siksi sekä Worker että `server.py` välittävät kutsut. Puhesynteesin avaimet ovat vain palvelimella.
 

@@ -4,6 +4,8 @@ Kuulutus on HyRin junioriotteluiden kuulutusapuri. Sovellus hakee ottelun tiedot
 
 **Osoite:** https://kuulutus.konderi.fi. Salasanan saat joukkueenjohdolta.
 
+Tämä ohje on luettavissa myös [GitHubin Wikissä](https://github.com/Konderi/Kuulutus/wiki).
+
 ## Sisällys
 
 | Sivu | Mitä löytyy |
