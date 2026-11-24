@@ -774,9 +774,10 @@ $("#btnAuto").onclick = () => { if (!confirm("Korvataanko nykyinen kenttäjako a
 $("#btnAddLine").onclick = () => { T().lines.push(newLine()); save(); renderTeam(); };
 $("#btnClearLines").onclick = () => { if (!confirm("Poistetaanko kaikki kentät? Kuulutus luetaan silloin pelipaikoittain.")) return; T().lines = []; save(); renderTeam(); };
 
-function playerOptions(team, sel, filter){
+// strict: vain suodattimen mukaiset (aiemmin valittu säilyy listalla, vaikka ei täytä ehtoa)
+function playerOptions(team, sel, filter, strict){
   const opts = team.players.filter(p => p.nr).slice().sort(sortByNr);
-  const ordered = filter ? [...opts.filter(filter), ...opts.filter(p => !filter(p))] : opts;
+  const ordered = !filter ? opts : strict ? opts.filter(p => filter(p) || p.nr === sel) : [...opts.filter(filter), ...opts.filter(p => !filter(p))];
   return `<option value="">–</option>` + ordered.map(p =>
     `<option value="${esc(p.nr)}"${p.nr===sel?" selected":""}>#${esc(p.nr)} ${esc(p.last || p.first)}</option>`).join("")
     + (sel && !player(team, sel) ? `<option value="${esc(sel)}" selected>#${esc(sel)} ?</option>` : "");
@@ -787,7 +788,8 @@ function renderTeam(){
   document.querySelectorAll("#sideSeg button").forEach(b => b.classList.toggle("on", b.dataset.side === S.side));
   $("#teamName").value = team.name;
   // maalivahdit
-  $("#gk").innerHTML = ["Aloittava (jos tiedossa)","Varamaalivahti"].map((lab,i) => `<div class="slot"><label>${lab}</label><select data-gk="${i}">${playerOptions(team, team.goalies[i], p => posGroup(p)==="MV")}</select></div>`).join("");
+  $("#gk").innerHTML = ["Aloittava (jos tiedossa)","Varamaalivahti"].map((lab,i) => `<div class="slot"><label>${lab}</label><select data-gk="${i}">${playerOptions(team, team.goalies[i], p => posGroup(p)==="MV", true)}</select></div>`).join("")
+    + (team.players.some(p => p.nr && posGroup(p) === "MV") ? "" : '<p class="small muted" style="grid-column:1/-1;margin:0">Kokoonpanossa ei ole maalivahdiksi merkittyjä pelaajia. Merkitse pelaajalistan Paikka-sarakkeeseen MV.</p>');
   // kentät
   const used = {};
   team.lines.forEach(L => [...L.d, ...L.f].forEach(n => n && (used[n] = (used[n]||0)+1)));
