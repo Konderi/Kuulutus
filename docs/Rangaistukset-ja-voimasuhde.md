@@ -2,12 +2,12 @@
 
 Kuulutusohjeen mukaan rangaistuksen päättyessä kuulutetaan voimasuhde, esim. ”Joukkueet täysilukuiset”. TiTu ei tiedä tarkalleen, milloin pelaaja palaa jäälle, joten tämä tehdään pääosin käsin.
 
-## Rangaistukset käynnissä -kortti
+## Voimasuhde-kortti
 
-Kun rangaistuksia on käynnissä, **Tapahtumat**-välilehdelle ilmestyy kortti, jossa näkyy:
+**Tapahtumat → Ottelu** -näkymän Voimasuhde-kortissa näkyy:
 
-- jokainen voimassa oleva rangaistus: joukkue, pelaaja, kesto ja **päättymisaika**
-- nykyinen voimasuhde, esim. 5–4.
+- nykyinen voimasuhde: vihreä *Täysilukuiset 5–5* tai oranssi esim. *5–4*
+- jokainen voimassa oleva rangaistus: joukkue, pelaaja, kesto ja **päättymisaika**.
 
 Kun rangaistus päättyy **hallin kellon** mukaan, paina sen kohdalla **Päättyi**. Sovellus laskee uuden voimasuhteen ja kuuluttaa sen ohjeen taulukon mukaan. Jos taulukon mukaan mitään ei kuuluteta, näytölle tulee siitä ilmoitus.
 
@@ -15,12 +15,12 @@ Kun rangaistus päättyy **hallin kellon** mukaan, paina sen kohdalla **Päätty
 
 ## Voimasuhteen pikapainikkeet
 
-**Muut kuulutukset → Voimasuhde** -kohdassa on painikkeet suoraan kuulutettaville lauseille:
+Samassa kortissa ovat painikkeet suoraan kuulutettaville lauseille:
 
 - Joukkueet täysilukuiset
-- Koti täysilukuinen
-- Vieras täysilukuinen
 - Joukkueet tasalukuiset
+- [kotijoukkue] täysilukuinen
+- [vierasjoukkue] täysilukuinen
 
 Käytä näitä, kun haluat kuuluttaa tilanteen heti etkä seuraa korttia.
 
@@ -42,4 +42,4 @@ Sovellus laskee voimasuhteen näillä säännöillä (myös automaattista täysi
 | 4–3 → 4–4 | Joukkueet tasalukuiset |
 | 3–3 → 4–3 | Vieras/koti vajaalukuinen |
 
-Automaattinen täysilukuisuus (asetus *Täysilukuisuus* kohdassa *Mitä kuulutetaan*) kuuluttaa vasta, kun TiTun peliaika ohittaa päättymisajan. Se voi siis tulla myöhässä.
+Automaattinen täysilukuisuus (asetuksissa *Tulospalvelusta jonoon → Täysilukuisuus*) kuuluttaa vasta, kun TiTun peliaika ohittaa päättymisajan. Se voi siis tulla myöhässä.

@@ -215,33 +215,96 @@ button.b:disabled{opacity:.45;cursor:default;transform:none}
 @media (min-width:700px){.script.compact{font-size:20px}}
 
 /* --- tapahtumat --- */
-.score-card{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.scoreboard{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;width:100%;margin-bottom:12px}
-.scoreboard .team{font:700 18px/1.2 var(--f-head);text-transform:uppercase;letter-spacing:.02em}
+.scoreboard{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;width:100%}
+.scoreboard .team{font:700 17px/1.2 var(--f-head);text-transform:uppercase;letter-spacing:.02em;overflow-wrap:anywhere}
 .scoreboard .team.away{text-align:right}
-.scoreboard .sc{font:800 40px/1 var(--f-head);font-variant-numeric:tabular-nums;padding:6px 14px;border-radius:12px;background:var(--brand);color:#fff;letter-spacing:.04em}
+.scoreboard .sc{font:800 38px/1 var(--f-head);font-variant-numeric:tabular-nums;padding:6px 14px;border-radius:12px;background:var(--brand);color:#fff;letter-spacing:.04em}
 .scoreboard .clock{grid-column:1/-1;text-align:center;font-size:13px;color:var(--muted);display:flex;justify-content:center;gap:8px;align-items:center;flex-wrap:wrap}
-.queue-bar{position:sticky;bottom:calc(var(--nav-h) + var(--safe-b) + 10px);z-index:10;display:flex;gap:10px;background:color-mix(in srgb,var(--bg) 80%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:10px;margin:0 -10px 14px;border-radius:16px}
-.queue-bar #btnEvNext{flex:1}
-@media (min-width:1024px){.queue-bar{bottom:12px}}
-.pen-list{display:flex;flex-direction:column;gap:8px}
+.live-card .follow{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.live-card .follow small b{color:var(--ink)}
+.ev-empty{text-align:center;padding:6px 4px 2px}
+.ev-empty p{margin:0 0 10px;color:var(--muted)}
+
+/* asetukset: tiivistelmä yhdellä rivillä, avautuu tarvittaessa */
+.ev-settings{padding:0}
+.ev-settings summary{list-style:none;display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 16px;cursor:pointer}
+.ev-settings summary::-webkit-details-marker{display:none}
+.ev-settings .set-ico{font-size:18px;opacity:.7}
+.ev-settings .set-sum{flex:1;min-width:0;font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-settings .set-sum b{color:var(--ink);font-weight:600}
+.ev-settings .set-open{font:600 14px/1 var(--f-body);color:var(--ink)}
+.ev-settings[open] .set-open{opacity:.55}
+.ev-settings .set-body{padding:4px 16px 16px;border-top:1px solid var(--line)}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:12px}
+.set-row select{min-width:200px}
+.set-sub{font:700 12px/1 var(--f-head);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 4px}
+
+/* alinäkymät: puhelimella välilehdet, leveällä näytöllä rinnakkain */
+.ev-tabs{display:flex;width:100%;margin-bottom:14px;position:sticky;top:calc(var(--appbar-h,64px) + 8px);z-index:12;box-shadow:0 -9px 0 var(--bg),0 2px 10px rgba(0,0,0,.08)}
+.ev-tabs button{flex:1;min-height:44px;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.ev-tabs .badge{min-width:20px;height:20px;border-radius:10px;background:var(--live);color:#fff;font:700 12px/20px var(--f-body);padding:0 6px}
+.ev-pane{display:none}
+.ev-pane.on{display:block}
+@media (min-width:900px){
+  .ev-tabs{display:none}
+  .ev-panes{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;align-items:start}
+  .ev-pane{display:block}
+  .ev-pane[data-pane="fixed"]::before{content:"Kuulutukset";display:block;font:800 13px/1 var(--f-head);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:2px 2px 10px}
+  .ev-pane[data-pane="live"]::before{content:"Ottelu";display:block;font:800 13px/1 var(--f-head);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:2px 2px 10px}
+}
+@media (min-width:1024px){.main:has(#tab-tapahtumat.on){max-width:1100px}}
+
+#evList{font-size:16px}
+#evList .blk{padding:10px 12px}
+#evList [data-evsay]{width:40px;height:40px;min-height:40px}
+/* jono */
+.q-card{border-width:2px}
+.q-card.has{border-color:var(--hl-line);box-shadow:0 0 0 3px color-mix(in srgb,var(--hl-line) 25%,transparent),var(--shadow)}
+.q-count{display:inline-block;min-width:22px;height:22px;border-radius:11px;background:var(--live);color:#fff;font:700 13px/22px var(--f-body);text-align:center;padding:0 6px;margin-left:4px;vertical-align:1px}
+.q-count:empty{display:none}
+.q-actions{margin-top:12px}
+.q-actions #btnEvNext{flex:1}
+.q-wait{display:inline-flex;align-items:center;gap:6px;font:600 12px/1.2 var(--f-body);color:var(--warn);text-transform:none;letter-spacing:0}
+.q-wait.go{color:var(--ok)}
+.q-empty{color:var(--muted);font-size:15px;margin:0}
+.toggle.mini{min-height:32px;gap:8px;font:600 13px/1 var(--f-body);color:var(--muted)}
+.toggle.mini input{width:40px;height:24px}.toggle.mini input::after{width:18px;height:18px}.toggle.mini input:checked::after{transform:translateX(16px)}
+
+/* voimasuhde */
+.pen-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.pen-list:empty{display:none}
 .pen{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
 .pen-team{font:700 13px/1.2 var(--f-head);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .pen-who{font-weight:600;margin:2px 0}
 .pen-time{font-size:13px;color:var(--muted)}
 .pen-time b{color:var(--ink);font-variant-numeric:tabular-nums}
-.man-group{padding:12px 0;border-top:1px solid var(--line)}
-.man-group:first-of-type{border-top:0;padding-top:0}
-.man-group h3{font:700 12px/1 var(--f-head);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.pen-note{font-size:13px;color:var(--muted);margin:0 0 12px}
+.pill.ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.pill.pp{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+
+/* kiinteät kuulutukset */
+.man-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.man-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.man-grid .b{white-space:normal;text-align:center;line-height:1.2;padding:8px 10px;min-height:52px}
+.man-grid.quick .b{font-size:14px}
+.b.tile{flex-direction:column;gap:3px;min-height:64px}
+.b.tile b{font:700 16px/1.15 var(--f-head);letter-spacing:.01em}
+.b.tile small{font:500 12px/1.2 var(--f-body);color:var(--muted)}
+.b.playing,.b.tile.playing{background:var(--hl);border-color:var(--hl-line);box-shadow:0 0 0 2px var(--hl-line)}
+.b.playing small{color:var(--ink)}
+.man-sub{font:700 12px/1 var(--f-head);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px}
+.man-sub .muted{text-transform:none;letter-spacing:0;font-weight:500}
+.man-form + .man-form{margin-top:6px;padding-top:2px;border-top:1px solid var(--line)}
+.man-card .card-head + .man-form .man-sub{margin-top:0}
 .man-row{display:flex;gap:8px;margin-top:8px}
+.man-row:first-child{margin-top:0}
 .man-row select{flex:1;min-width:0}
 .man-row .b{flex:none}
+.man-row.two select{flex:1 1 0}
+@media (max-width:479px){.man-row.two{flex-direction:column}}
+.b.wide{width:100%;margin-top:8px}
 #freeText{min-height:64px}
-.man-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-.man-grid .b{white-space:normal;text-align:center;line-height:1.2;padding:8px 12px;min-height:52px}
-.man-saves{display:flex;gap:6px}
-.man-saves .b{flex:1}
-.man-saves select{min-height:52px}
+.man-msg{margin:10px 0 0}
 details.help{font-size:14px;color:var(--muted)}
 details.help summary{cursor:pointer;font-weight:600;color:var(--ink);min-height:40px;display:flex;align-items:center;gap:8px;list-style:none}
 details.help summary::-webkit-details-marker{display:none}
@@ -257,7 +320,7 @@ details.help p{margin:4px 0 0}
 .nowplaying .np-eq i{width:4px;background:#fff;border-radius:2px;animation:eq 1s infinite ease-in-out}
 .nowplaying .np-eq i:nth-child(2){animation-delay:.2s}.nowplaying .np-eq i:nth-child(3){animation-delay:.4s}
 @keyframes eq{0%,100%{height:4px}50%{height:18px}}
-.nowplaying .np-txt{flex:1;min-width:0;font:600 15px/1.25 var(--f-head);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nowplaying .np-txt{flex:1;min-width:0;font:600 15px/1.3 var(--f-head);letter-spacing:.02em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
 .nowplaying .np-txt small{display:block;font:500 11px/1.2 var(--f-body);opacity:.65;text-transform:uppercase;letter-spacing:.08em}
 .nowplaying button{flex:none;min-height:44px;border-radius:12px;border:0;background:#fff;color:#111;font:700 14px/1 var(--f-body);padding:0 16px;cursor:pointer}
 @media (min-width:1024px){.nowplaying{bottom:20px;left:260px}}
@@ -407,106 +470,134 @@ details.help p{margin:4px 0 0}
 
 <!-- ============ TAPAHTUMAT ============ -->
 <section class="tab" id="tab-tapahtumat">
-  <div class="page-head">
-    <div><h1>Pelitapahtumat</h1><p>Maalit, rangaistukset ja muut kuulutukset ottelun aikana.</p></div>
-    <div class="seg" id="evLangSeg"><button data-lang="fi" class="on">Suomi</button><button data-lang="en">English</button></div>
+  <div class="page-head ev-head">
+    <div><h1>Pelitapahtumat</h1><p>Seuraa ottelua ja kuuluta tapahtumat.</p></div>
   </div>
-  <div class="card">
-    <div id="evScore"></div>
-    <div class="style-row" style="margin:0 0 6px">
-      <span class="style-lbl">Lukutyyli</span>
-      <div class="seg style-seg" data-style-seg><button data-style="announcer">🎙 Kuuluttaja</button><button data-style="neutral">Neutraali</button></div>
-    </div>
-    <div class="toggles">
-      <label class="toggle"><input type="checkbox" id="evFollow"><span class="tl"><b>Seuraa ottelua</b><small>päivitys 5 s välein</small></span></label>
-      <label class="toggle"><input type="checkbox" id="evAuto"><span class="tl"><b>Automaattinen kuulutus</b><small>kun peli jatkuu</small></span></label>
-    </div>
-    <p class="small muted" id="evInfo" style="margin:8px 0 0"></p>
-    <details class="help" style="margin-top:6px">
-      <summary>Mitä kuulutetaan ja milloin?</summary>
-      <div class="toggles" style="margin:6px 0">
+
+  <details class="ev-settings card" id="evSettings">
+    <summary><span class="set-ico" aria-hidden="true">⚙</span><span class="set-sum" id="evSetSum">Asetukset</span><span class="set-open">Muuta</span></summary>
+    <div class="set-body">
+      <div class="set-row"><span class="style-lbl">Kieli</span><div class="seg" id="evLangSeg"><button data-lang="fi" class="on">Suomi</button><button data-lang="en">English</button></div></div>
+      <div class="set-row"><span class="style-lbl">Lukutyyli</span><div class="seg style-seg" data-style-seg><button data-style="announcer">🎙 Kuuluttaja</button><button data-style="neutral">Neutraali</button></div></div>
+      <div class="set-row"><span class="style-lbl">Ääni</span><select id="evVoice" aria-label="Ääni"></select></div>
+      <div class="set-sub">Tulospalvelusta jonoon</div>
+      <div class="toggles">
         <label class="toggle"><input type="checkbox" data-evt="Goal"><span class="tl">Maalit</span></label>
         <label class="toggle"><input type="checkbox" data-evt="Penalty"><span class="tl">Rangaistukset</span></label>
         <label class="toggle"><input type="checkbox" data-evt="Timeout"><span class="tl">Aikalisät</span></label>
         <label class="toggle"><input type="checkbox" data-evt="GK"><span class="tl">Maalivahdin vaihdot</span></label>
-        <label class="toggle"><input type="checkbox" data-evt="PX"><span class="tl">Täysilukuisuus<small>rangaistusten päättyminen</small></span></label>
+        <label class="toggle"><input type="checkbox" data-evt="PX"><span class="tl">Täysilukuisuus<small>automaattisesti TiTun kellosta</small></span></label>
       </div>
-      <p>Ohjeen mukaan kuulutus tehdään pelin käynnistyttyä, seuraavan aloituksen jälkeen. Automaattinen kuulutus odottaa, että tulospalvelun peliaika etenee tapahtuman ajan ohi. Peliaika päivittyy tulospalveluun noin 30 sekunnin välein. ”Kuuluta jono” lukee jonon heti.</p>
-    </details>
-  </div>
-  <div class="queue-bar">
-    <button class="b p xl" id="btnEvNext">▶ Kuuluta jono</button>
-    <button class="b xl" id="btnEvStop" aria-label="Pysäytä">■</button>
-    <button class="b xl ghost" id="btnEvClear" title="Tyhjennä jono" aria-label="Tyhjennä jono">✕</button>
-  </div>
-  <div class="card" id="penCard" hidden>
-    <div class="card-head"><h2>Rangaistukset käynnissä</h2><span class="pill" id="penStrength"></span></div>
-    <div id="penList" class="pen-list"></div>
-    <p class="small muted" style="margin:10px 0 0">TiTun kello voi olla hallin kellosta jäljessä. Vertaa päättymisaikaa hallin kelloon ja paina <b>Päättyi</b>, kun rangaistus päättyy – kuulutus (esim. ”täysilukuinen”) tehdään ohjeen mukaan.</p>
-  </div>
-  <div class="card">
-    <div class="card-head"><h2>Muut kuulutukset</h2></div>
-
-    <div class="man-group">
-      <h3>Vapaa kuulutus</h3>
-      <textarea id="freeText" rows="2" placeholder="Kirjoita kuulutus, esim. tuomarin pyytämä tiedote"></textarea>
-      <div class="row" style="margin-top:8px"><button class="b p" data-man="free">▶ Kuuluta</button><button class="b s ghost" id="freeClear">Tyhjennä</button></div>
+      <p class="small muted" style="margin:8px 0 0">Ohjeen mukaan tapahtuma kuulutetaan, kun peli jatkuu seuraavan aloituksen jälkeen. Automaattinen kuulutus odottaa, että tulospalvelun peliaika etenee tapahtuman ajan ohi. Peliaika päivittyy noin 30 sekunnin välein.</p>
     </div>
+  </details>
 
-    <div class="man-group">
-      <h3>Voimasuhde</h3>
-      <div class="man-grid">
-        <button class="b" data-man="full">Joukkueet täysilukuiset</button>
-        <button class="b" data-man="homeFull">Koti täysilukuinen</button>
-        <button class="b" data-man="awayFull">Vieras täysilukuinen</button>
-        <button class="b" data-man="even">Joukkueet tasalukuiset</button>
+  <div class="seg ev-tabs" id="evPaneSeg" role="tablist">
+    <button data-pane="live" class="on" role="tab">Ottelu<span class="badge" id="evPaneBadge" hidden>0</span></button>
+    <button data-pane="fixed" role="tab">Kuulutukset</button>
+  </div>
+
+  <div class="ev-panes">
+    <!-- ===== LIVE: tilanne, jono, voimasuhde, historia ===== -->
+    <div class="ev-pane on" data-pane="live">
+      <div class="card live-card">
+        <div id="evScore"></div>
+        <label class="toggle follow"><input type="checkbox" id="evFollow"><span class="tl"><b>Seuraa ottelua</b><small id="evInfo">Hakee tulospalvelusta 5 s välein</small></span></label>
       </div>
-    </div>
 
-    <div class="man-group">
-      <h3>Erä ja aika</h3>
-      <div class="man-grid">
-        <button class="b" data-man="respect">Kunnioita peliä</button>
-        <button class="b" data-man="min1">1. erää jäljellä 1 min</button>
-        <button class="b" data-man="min2">2. erää jäljellä 1 min</button>
-        <button class="b" data-man="min3">3. erää jäljellä 2 min</button>
-        <button class="b" data-man="toEnd">Aikalisä päättynyt</button>
+      <div class="card q-card" id="qCard">
+        <div class="card-head">
+          <h2>Kuulutettavat <span class="q-count" id="qCount"></span></h2>
+          <label class="toggle mini" title="Kuuluta jono automaattisesti, kun peli jatkuu"><span class="tl">Auto</span><input type="checkbox" id="evAuto"></label>
+        </div>
+        <div class="script compact" id="evQueue"></div>
+        <div class="btn-row q-actions" id="qActions">
+          <button class="b p xl" id="btnEvNext">▶ Kuuluta</button>
+          <button class="b ghost" id="btnEvClear">Ohita</button>
+        </div>
       </div>
-    </div>
 
-    <div class="man-group">
-      <h3>Maali</h3>
-      <div class="man-row"><select id="disallowTeam" aria-label="Joukkue"><option value="">Joukkue: ei mainita</option><option value="home">Koti</option><option value="away">Vieras</option></select></div>
-      <div class="man-row"><select id="disallowReason" aria-label="Hylkäyksen syy"></select><button class="b" data-man="disallow">Maalia ei hyväksytty</button></div>
-      <div class="man-row"><select id="fixGoal" aria-label="Korjattava maali"></select><button class="b" data-man="fix">Kuuluta korjaus</button></div>
-      <p class="small muted" style="margin:4px 0 0">Korjaus luetaan tulospalvelun nykyisillä tiedoilla. Kun TiTussa muutetaan jo kirjattua maalia, korjaus tulee myös jonoon automaattisesti.</p>
-    </div>
+      <div class="card" id="penCard">
+        <div class="card-head"><h2>Voimasuhde</h2><span class="pill" id="penStrength"></span></div>
+        <div id="penList" class="pen-list"></div>
+        <div class="man-grid quick">
+          <button class="b" data-man="full">Joukkueet täysilukuiset</button>
+          <button class="b" data-man="even">Joukkueet tasalukuiset</button>
+          <button class="b" data-man="homeFull" id="qbHome">Koti täysilukuinen</button>
+          <button class="b" data-man="awayFull" id="qbAway">Vieras täysilukuinen</button>
+        </div>
+      </div>
 
-    <div class="man-group">
-      <h3>Jatkoaika ja voittomaalikilpailu</h3>
-      <div class="man-row"><select id="otLen" aria-label="Jatkoajan pituus"><option value="5">5 min jatkoaika</option><option value="10">10 min jatkoaika</option><option value="15">15 min jatkoerä</option><option value="20">20 min jatkoerä</option></select><button class="b" data-man="ot">Jatkoaika</button></div>
-      <div class="man-row"><select id="soStart" aria-label="Aloittava joukkue"><option value="">Aloittaja: ei kuuluteta</option><option value="home">Aloittaa: koti</option><option value="away">Aloittaa: vieras</option></select><button class="b" data-man="so">Voittomaalikilpailu</button></div>
-    </div>
-
-    <div class="man-group">
-      <h3>Parhaat pelaajat</h3>
-      <div class="man-row"><select id="bestAway" aria-label="Vierasjoukkueen paras"></select><select id="bestHome" aria-label="Kotijoukkueen paras"></select></div>
-      <div class="row" style="margin-top:8px"><button class="b" data-man="best">Kuuluta parhaat pelaajat</button><span class="small muted">Hävinnyt joukkue kuulutetaan ensin.</span></div>
-    </div>
-
-    <div class="man-group">
-      <h3>Pelikello ja ottelun loppu</h3>
-      <div class="man-grid">
-        <button class="b" data-man="clockDown">Käsiajanotto</button>
-        <button class="b" data-man="clockUp">Pelikello toiminnassa</button>
-        <div class="man-saves"><button class="b" data-man="saves">Torjunnat</button><select id="savesPeriod" aria-label="Erä"><option value="1">1.</option><option value="2">2.</option><option value="3">3.</option><option value="4">JA</option><option value="0">Kaikki</option></select></div>
-        <button class="b" data-man="crowd">Yleisömäärä</button>
-        <button class="b" data-man="final">Lopputulos</button>
+      <div class="card">
+        <div class="card-head"><h2>Ottelun tapahtumat</h2></div>
+        <div class="script compact" id="evList"></div>
       </div>
     </div>
-    <div class="script compact" id="manPreview" style="margin-top:12px"></div>
+
+    <!-- ===== KIINTEÄT KUULUTUKSET ===== -->
+    <div class="ev-pane" data-pane="fixed">
+      <div class="card man-card">
+        <div class="card-head"><h2>Ottelun aikana</h2></div>
+        <div class="man-grid">
+          <button class="b tile" data-man="respect"><b>Kunnioita peliä</b><small>ennen ottelua · erätauolla</small></button>
+          <button class="b tile" data-man="toEnd"><b>Aikalisä päättynyt</b><small>peli jatkuu</small></button>
+        </div>
+        <div class="man-sub">Erän lopussa</div>
+        <div class="man-grid three">
+          <button class="b tile" data-man="min1"><b>1 min</b><small>1. erää jäljellä</small></button>
+          <button class="b tile" data-man="min2"><b>1 min</b><small>2. erää jäljellä</small></button>
+          <button class="b tile" data-man="min3"><b>2 min</b><small>3. erää jäljellä</small></button>
+        </div>
+        <div class="man-sub">Pelikello</div>
+        <div class="man-grid">
+          <button class="b tile" data-man="clockDown"><b>Käsiajanotto</b><small>pelikello epäkunnossa</small></button>
+          <button class="b tile" data-man="clockUp"><b>Pelikello toiminnassa</b><small>käsiajanotto päättyy</small></button>
+        </div>
+      </div>
+
+      <div class="card man-card">
+        <div class="card-head"><h2>Maalitilanteet</h2></div>
+        <div class="man-form">
+          <div class="man-sub">Maalia ei hyväksytty</div>
+          <div class="man-row"><select id="disallowTeam" aria-label="Joukkue"><option value="">Joukkue: ei mainita</option><option value="home">Koti</option><option value="away">Vieras</option></select></div>
+          <div class="man-row"><select id="disallowReason" aria-label="Hylkäyksen syy"></select></div>
+          <button class="b p wide" data-man="disallow">▶ Maalia ei hyväksytty</button>
+        </div>
+        <div class="man-form">
+          <div class="man-sub">Maalin korjaus</div>
+          <div class="man-row"><select id="fixGoal" aria-label="Korjattava maali"></select></div>
+          <button class="b wide" data-man="fix">▶ Kuuluta korjaus</button>
+          <p class="small muted" style="margin:6px 0 0">Luetaan TiTun nykyisillä tiedoilla. Kun TiTussa muutetaan jo kirjattua maalia, korjaus tulee jonoon myös automaattisesti.</p>
+        </div>
+      </div>
+
+      <div class="card man-card">
+        <div class="card-head"><h2>Jatkoaika ja voittomaalikilpailu</h2></div>
+        <div class="man-row"><select id="otLen" aria-label="Jatkoajan pituus"><option value="5">5 min jatkoaika</option><option value="10">10 min jatkoaika</option><option value="15">15 min jatkoerä</option><option value="20">20 min jatkoerä</option></select><button class="b" data-man="ot">▶ Jatkoaika</button></div>
+        <div class="man-row"><select id="soStart" aria-label="Aloittava joukkue"><option value="">Aloittaja: ei kuuluteta</option><option value="home">Aloittaa: koti</option><option value="away">Aloittaa: vieras</option></select><button class="b" data-man="so">▶ Voittomaalikilpailu</button></div>
+      </div>
+
+      <div class="card man-card">
+        <div class="card-head"><h2>Ottelun jälkeen</h2></div>
+        <div class="man-row"><select id="savesPeriod" aria-label="Erä"><option value="1">Torjunnat: 1. erä</option><option value="2">Torjunnat: 2. erä</option><option value="3">Torjunnat: 3. erä</option><option value="4">Torjunnat: jatkoaika</option><option value="0">Torjunnat: koko ottelu</option></select><button class="b" data-man="saves">▶ Torjunnat</button></div>
+        <div class="man-form">
+          <div class="man-sub">Parhaat pelaajat <span class="muted">· hävinnyt joukkue ensin</span></div>
+          <div class="man-row two"><select id="bestAway" aria-label="Vierasjoukkueen paras"></select><select id="bestHome" aria-label="Kotijoukkueen paras"></select></div>
+          <button class="b wide" data-man="best">▶ Parhaat pelaajat</button>
+        </div>
+        <div class="man-grid" style="margin-top:12px">
+          <button class="b tile" data-man="crowd"><b>Yleisömäärä</b><small id="crowdHint">TiTusta</small></button>
+          <button class="b tile" data-man="final"><b>Lopputulos</b><small>ja kiitokset</small></button>
+        </div>
+      </div>
+
+      <div class="card man-card">
+        <div class="card-head"><h2>Vapaa kuulutus</h2></div>
+        <textarea id="freeText" rows="2" placeholder="Kirjoita kuulutus, esim. tuomarin pyytämä tiedote"></textarea>
+        <div class="row" style="margin-top:8px"><button class="b p" data-man="free">▶ Kuuluta</button><button class="b s ghost" id="freeClear">Tyhjennä</button></div>
+      </div>
+    </div>
   </div>
-  <div class="card script compact" id="evList"></div>
 </section>
 </main>
 </div>
@@ -983,6 +1074,12 @@ function bestBrowserVoices(lang){
 }
 const hasNatural = lang => bestBrowserVoices(lang).some(v => /Online \(Natural\)|Neural/i.test(v.name));
 function renderVoices(){
+  renderVoicesInto();
+  $("#evVoice").innerHTML = $("#voice").innerHTML; $("#evVoice").value = $("#voice").value;
+  $("#evVoice").closest(".set-row").hidden = !$("#voice").options.length;
+  if (typeof renderEvSettings === "function" && $("#evSetSum")) renderEvSettings();
+}
+function renderVoicesInto(){
   const sel = $("#voice");
   if (TTS) {
     const list = AZ_VOICES[S.lang] || [];
@@ -1003,7 +1100,7 @@ function renderVoices(){
   }
 }
 if (synth) synth.onvoiceschanged = () => { if (!TTS) renderVoices(); };
-$("#voice").onchange = e => { S.voices[S.lang] = e.target.value; save(); renderVoices(); };
+$("#voice").onchange = $("#evVoice").onchange = e => { S.voices[S.lang] = e.target.value; save(); renderVoices(); renderEvSettings(); };
 
 // mood: maalit innostuneesti, muut kuulutukset jämäkästi (ElevenLabs-tyyli)
 function ttsReq(b){ return {lang: S.lang, voice: curVoice(), rate: S.rate, style: S.style, mood: b.kind === "Goal" && !b.fix ? "excited" : "confident", segs: b.segs}; }
@@ -1079,7 +1176,7 @@ function speakBrowser(b, token){
     synth.speak(u);
   })), Promise.resolve());
 }
-function stopAll(){ playToken++; playing = false; player1.pause(); if (synth) synth.cancel(); mark(-1); markEv(null); nowPlaying(null); }
+function stopAll(){ playToken++; playing = false; player1.pause(); if (synth) synth.cancel(); mark(-1); markEv(null); nowPlaying(null); document.querySelectorAll(".b.playing").forEach(x => x.classList.remove("playing")); }
 function mark(i){ document.querySelectorAll("#script .blk").forEach(b => b.classList.toggle("cur", +b.dataset.b === i)); if (i >= 0) document.querySelector(`#script .blk[data-b="${i}"]`)?.scrollIntoView({block:"center", behavior:"smooth"}); }
 function speak(idxs){ speakSeq(idxs.map(i => BLOCKS[i]), n => mark(n < 0 ? -1 : idxs[n])); }
 $("#script").onclick = e => { const b = e.target.closest("[data-say]"); if (b) speak([+b.dataset.say]); };
@@ -1399,14 +1496,19 @@ function renderManualSelects(){
   }
 }
 
+// Painike korostuu toiston ajaksi; teksti näkyy toistopalkissa. Puuttuva valinta → ilmoitus painikkeen alle.
 document.querySelectorAll("[data-man]").forEach(btn => btn.onclick = () => {
+  document.querySelectorAll(".man-msg").forEach(m => m.remove());
   const b = manualBlock(btn.dataset.man, S.lang);
-  $("#manPreview").innerHTML = `<div class="blk" id="manBlk"><div class="txt"><h4>${esc(b.h)}</h4>${b.html}</div></div>`;
-  if (!b.silent) speakSeq([b], n => $("#manBlk")?.classList.toggle("cur", n >= 0));
+  if (b.silent) {
+    const m = document.createElement("div"); m.className = "notice man-msg"; m.innerHTML = b.html;
+    (btn.closest(".man-grid, .man-row, .row") || btn).after(m); setTimeout(() => m.remove(), 5000); return;
+  }
+  speakSeq([b], n => { document.querySelectorAll(".b.playing").forEach(x => x.classList.remove("playing")); if (n >= 0) btn.classList.add("playing"); });
 });
 
 async function fetchEvents(){
-  if (!S.game || !S.game.id) { $("#evInfo").innerHTML = '<span class="warn">Valitse ottelu tulospalvelusta (välilehti 1). Tapahtumat luetaan tulospalvelun rajapinnasta.</span>'; return; }
+  if (!S.game || !S.game.id) { renderEvents(); return; }
   evTried = true;
   try {
     const d = await api(`/api/events?gameid=${S.game.id}&season=${S.game.season || 0}`);
@@ -1432,43 +1534,80 @@ async function fetchEvents(){
     const nNew = firstLoad ? 0 : fresh.length;
     const prevT = lastGameTime; lastGameTime = d.gameTime;
     const running = prevT != null && d.gameTime > prevT;
-    $("#evInfo").innerHTML = `Päivitetty ${now} · peliaika ${EVP.fi.clock(d.gameTime || 0)}${STATUS_FI[d.status] ? ` · ${STATUS_FI[d.status]}` : ""}${running ? " · <b>peli käynnissä</b>" : ""}${nNew ? ` – <b>${nNew} uutta</b>` : ""}.${S.ev.follow ? "" : ' <span class="muted">Seuranta pois päältä.</span>'}`;
+    $("#evInfo").innerHTML = S.ev.follow ? `Päivitetty ${now}${running ? " · <b>kello käy</b>" : ""}${nNew ? ` · <b>${nNew} uutta</b>` : ""}` : `Pois päältä · haettu ${now}`;
     drainQueue();
   } catch (e) { $("#evInfo").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
 }
+function evBlk(it, b, extra = ""){
+  return `<div class="blk ev ${S.ev.read[it.key] ? "read" : ""}" data-k="${esc(it.key)}">
+    <div class="txt"><h4>${esc(b.h)}${extra}</h4>${b.html}</div>
+    ${b.silent ? "" : `<button class="b s" data-evsay="${esc(it.key)}" title="Lue ääneen" aria-label="Lue ääneen"></button>`}</div>`;
+}
+function renderEvSettings(){
+  const opt = [...$("#voice").options].find(o => o.value === curVoice());
+  const voice = (opt ? opt.textContent : "").replace(/\s*[(–].*$/, "");
+  $("#evSetSum").innerHTML = [S.lang === "en" ? "English" : "Suomi", S.style === "neutral" ? "Neutraali" : "Kuuluttaja", voice].filter(Boolean).map(x => `<b>${esc(x)}</b>`).join(" · ");
+}
 function renderEvents(){
   document.querySelectorAll("#evLangSeg button").forEach(b => b.classList.toggle("on", b.dataset.lang === S.lang));
-  renderStyle();
+  renderStyle(); renderEvSettings();
+  document.querySelectorAll("#evPaneSeg button").forEach(b => b.classList.toggle("on", b.dataset.pane === (S.evPane || "live")));
+  document.querySelectorAll(".ev-pane").forEach(p => p.classList.toggle("on", p.dataset.pane === (S.evPane || "live")));
   $("#evFollow").checked = S.ev.follow; $("#evAuto").checked = S.ev.auto;
   document.querySelectorAll("[data-evt]").forEach(c => c.checked = !!S.ev.types[c.dataset.evt]);
-  $("#btnEvNext").textContent = evQueue.length ? `▶ Kuuluta jono (${evQueue.length})` : "Jono tyhjä";
-  $("#btnEvNext").disabled = !evQueue.length;
-  $("#navBadge").hidden = !evQueue.length; $("#navBadge").textContent = evQueue.length;
+  const n = evQueue.length;
+  $("#navBadge").hidden = !n; $("#navBadge").textContent = n;
+  $("#evPaneBadge").hidden = !n; $("#evPaneBadge").textContent = n;
+  $("#qCount").textContent = n || "";
+  $("#qCard").classList.toggle("has", !!n);
+  $("#qActions").hidden = !n;
+  $("#btnEvNext").textContent = n > 1 ? `▶ Kuuluta kaikki (${n})` : "▶ Kuuluta";
+  $("#qbHome").textContent = `${evTeamName("home") || "Koti"} täysilukuinen`;
+  $("#qbAway").textContent = `${evTeamName("away") || "Vieras"} täysilukuinen`;
   renderPenalties(); renderManualSelects();
-  if (!EV) { $("#evScore").textContent = "–"; $("#evList").innerHTML = '<p class="muted small">Ei tapahtumia.</p>'; return; }
+  const live = $("#tab-tapahtumat .live-card");
+  if (!S.game) {
+    $("#evScore").innerHTML = `<div class="ev-empty"><p>Valitse ensin ottelu.</p><button class="b p" onclick="showTab('ottelu')">Valitse ottelu</button></div>`;
+    live.querySelector(".follow").hidden = true;
+  } else live.querySelector(".follow").hidden = !S.game.id;
+  if (S.game && !S.game.id) $("#evScore").innerHTML = `<div class="ev-empty"><p>Käsin luotu ottelu: tapahtumat eivät tule tulospalvelusta. Käytä Kuulutukset-näkymän painikkeita.</p></div>`;
+  if (!EV) {
+    if (S.game?.id) $("#evScore").innerHTML = `<div class="ev-empty"><p>${S.ev.follow ? '<span class="spin"></span> Haetaan tulospalvelusta…' : "Laita seuranta päälle, niin tilanne ja tapahtumat haetaan tulospalvelusta."}</p></div>`;
+    $("#evQueue").innerHTML = '<p class="q-empty">Ei kuulutettavaa.</p>';
+    $("#evList").innerHTML = '<p class="muted small" style="margin:0">Ei tapahtumia.</p>';
+    return;
+  }
   const E = EVP[S.lang];
   if (EV.playedPeriods && !$("#savesPeriod").dataset.touched) $("#savesPeriod").value = String(Math.min(EV.playedPeriods, 4));
+  $("#crowdHint").textContent = EV.spectators ? `${EV.spectators} katsojaa` : "ei kirjattu TiTuun";
   $("#evScore").innerHTML = `<div class="scoreboard"><div class="team">${esc(evTeamName("home"))}</div><div class="sc">${EV.homeGoals ?? 0}–${EV.awayGoals ?? 0}</div><div class="team away">${esc(evTeamName("away"))}</div>
-    <div class="clock">${isLive(EV.status) ? '<span class="pill live">Live</span>' : EV.status === 2 ? '<span class="pill">Päättynyt</span>' : ""}<span>Peliaika ${E.clock(EV.gameTime || 0)}${isLive(EV.status) && STATUS_FI[EV.status] ? " · " + STATUS_FI[EV.status] : ""}</span></div></div>`;
+    <div class="clock">${isLive(EV.status) ? '<span class="pill live">Live</span>' : EV.status === 2 ? '<span class="pill">Päättynyt</span>' : ""}<span>Peliaika <b>${E.clock(EV.gameTime || 0)}</b>${STATUS_FI[EV.status] && EV.status !== 2 ? " · " + STATUS_FI[EV.status] : ""}</span></div></div>`;
   renderHeader();
+  // Jono: kuuluttamattomat vanhimmasta uusimpaan
   const queued = new Map(evQueue.map(q => [q.key, q]));
-  $("#evList").innerHTML = ITEMS.length ? ITEMS.slice().reverse().map(it => {
-    const b = itemBlock(it, S.lang), on = S.ev.types[b.kind];
-    return `<div class="blk ev ${S.ev.read[it.key] ? "read" : ""} ${on && !b.silent ? "" : "off"}" data-k="${esc(it.key)}">
-      <div class="txt"><h4>${esc(b.h)}${it.manual ? " · ✓ kuulutettu käsin" : queued.has(it.key) ? (gameResumed(queued.get(it.key)) ? " · ▶ jonossa, peli jatkunut" : " · ⏳ jonossa, odottaa pelin jatkumista") : S.ev.read[it.key] ? " · ✓" : ""}</h4>${b.html}</div>
-      ${b.silent ? "" : `<button class="b s" data-evsay="${esc(it.key)}" title="Lue ääneen" aria-label="Lue ääneen"></button>`}</div>`;
-  }).join("") : '<p class="muted" style="font-size:16px">Ottelussa ei ole vielä tapahtumia.</p>';
+  const qItems = evQueue.map(q => ITEMS.find(it => it.key === q.key)).filter(Boolean);
+  $("#evQueue").innerHTML = qItems.length ? qItems.map(it => {
+    const go = gameResumed(queued.get(it.key));
+    return evBlk(it, itemBlock(it, S.lang), ` · <span class="q-wait ${go ? "go" : ""}">${go ? "▶ peli jatkunut – kuuluta" : "⏳ odottaa pelin jatkumista"}</span>`);
+  }).join("") : `<p class="q-empty">Ei kuulutettavaa. Uudet maalit, rangaistukset ja aikalisät ilmestyvät tähän${S.ev.auto ? " ja kuulutetaan automaattisesti, kun peli jatkuu" : ""}.</p>`;
+  // Historia: kaikki muut, uusin ensin
+  const rest = ITEMS.filter(it => !queued.has(it.key) && S.ev.types[evGroup(it.type)] !== false).slice().reverse();
+  $("#evList").innerHTML = rest.length ? rest.map(it => {
+    const b = itemBlock(it, S.lang);
+    return evBlk(it, b, it.manual ? " · kuulutettu käsin" : S.ev.read[it.key] ? " · ✓" : "");
+  }).join("") : '<p class="muted small" style="margin:0">Ottelussa ei ole vielä tapahtumia.</p>';
 }
 // ---- käynnissä olevat rangaistukset (kuuluttaja vertaa hallin kelloon ja kuuluttaa päättymisen)
 function renderPenalties(){
-  const card = $("#penCard");
-  if (!EV || !STRENGTH) { card.hidden = true; return; }
+  $("#penCard").hidden = !S.game;
+  if (!EV || !STRENGTH) { $("#penStrength").hidden = true; $("#penList").innerHTML = ""; return; }
   const E = EVP[S.lang], plen = (EV.periodLen || 20) * 60;
   const rows = ["away", "home"].flatMap(side => STRENGTH.active[side].map(p => ({...p, side})));
-  card.hidden = !rows.length;
-  if (!rows.length) return;
   const [h, a] = STRENGTH.strength;
-  $("#penStrength").textContent = `${evTeamName("home")} ${h} – ${a} ${evTeamName("away")}`;
+  const pill = $("#penStrength"); pill.hidden = false;
+  pill.className = "pill " + (h === a ? "ok" : "pp");
+  pill.textContent = h === 5 && a === 5 ? "Täysilukuiset 5–5" : `${h}–${a}`;
+  if (!rows.length) { $("#penList").innerHTML = ""; return; }
   $("#penList").innerHTML = rows.sort((x, y) => x.end - y.end).map(p => {
     const per = Math.floor((p.end - 1) / plen) + 1, rem = per * plen - p.end;
     const who = p.player ? `#${esc(p.player.nr)} ${esc(fullName(p.player))}` : "";
@@ -1476,9 +1615,9 @@ function renderPenalties(){
     const pend = STRENGTH.pending[p.side] ? ` · +${STRENGTH.pending[p.side]} odottaa` : "";
     return `<div class="pen"><div><div class="pen-team">${esc(evTeamName(p.side))}</div>
       <div class="pen-who">${who} · ${esc(E.pen(p.minutes))}</div>
-      <div class="pen-time">päättyy pelikellossa <b>${E.clock(p.end)}</b>${left}${pend}</div></div>
+      <div class="pen-time">päättyy <b>${E.clock(p.end)}</b>${left}${pend}</div></div>
       <button class="b p" data-penend="${esc(p.tag)}">Päättyi</button></div>`;
-  }).join("");
+  }).join("") + '<p class="pen-note">Vertaa hallin kelloon – TiTu voi olla jäljessä. <b>Päättyi</b> kuuluttaa voimasuhteen ohjeen mukaan.</p>';
 }
 $("#penList").onclick = e => {
   const btn = e.target.closest("[data-penend]"); if (!btn || !EV) return;
@@ -1487,7 +1626,7 @@ $("#penList").onclick = e => {
   ITEMS = buildItems(EV.events);   // laskee voimasuhteen uudelleen käsin päättyneen kanssa
   const msg = strengthMsg(before, STRENGTH.strength);
   renderEvents();
-  if (!msg) { $("#evInfo").innerHTML = '<span class="muted">Rangaistus merkitty päättyneeksi – voimasuhteen muutosta ei kuuluteta (ohjeen taulukko).</span>'; return; }
+  if (!msg) { const m = document.createElement("div"); m.className = "notice man-msg"; m.textContent = "Rangaistus merkitty päättyneeksi. Ohjeen taulukon mukaan voimasuhdetta ei kuuluteta."; $("#penList").after(m); setTimeout(() => m.remove(), 5000); return; }
   const plen = (EV.periodLen || 20) * 60, t = EV.gameTime || 0;
   const b = itemBlock({type: "PX", key: "manual_" + tag, time: t, period: Math.min(4, Math.floor(Math.max(0, t - 1) / plen) + 1), before, after: STRENGTH.strength, events: [], ...msg}, S.lang);
   speakSeq([b], () => {});
@@ -1495,8 +1634,8 @@ $("#penList").onclick = e => {
 
 function itemBlk(key){ const it = ITEMS.find(x => x.key === key); return it ? itemBlock(it, S.lang) : null; }
 function markEv(key){
-  document.querySelectorAll("#evList .blk").forEach(el => el.classList.toggle("cur", el.dataset.k === key));
-  if (key) { S.ev.read[key] = 1; save(); const el = document.querySelector(`#evList .blk[data-k="${CSS.escape(key)}"]`); el?.classList.add("read"); el?.scrollIntoView({block:"center", behavior:"smooth"}); }
+  document.querySelectorAll("#tab-tapahtumat .blk.ev").forEach(el => el.classList.toggle("cur", el.dataset.k === key));
+  if (key) { S.ev.read[key] = 1; save(); const qi = evQueue.findIndex(q => q.key === key); if (qi >= 0) { evQueue.splice(qi, 1); renderEvents(); } const el = document.querySelector(`#tab-tapahtumat .blk.ev[data-k="${CSS.escape(key)}"]`); el?.classList.add("read", "cur"); }
 }
 function speakItems(keys){
   keys = keys.filter(k => itemBlk(k));
@@ -1517,10 +1656,10 @@ function drainQueue(){
   speakItems(ready.map(q => q.key));
 }
 function setFollow(on){ clearInterval(evTimer); evTimer = null; if (on) evTimer = setInterval(fetchEvents, 5000); }
-$("#evList").onclick = e => { const b = e.target.closest("[data-evsay]"); if (b) speakItems([b.dataset.evsay]); };
+$("#evList").onclick = $("#evQueue").onclick = e => { const b = e.target.closest("[data-evsay]"); if (b) speakItems([b.dataset.evsay]); };
+$("#evPaneSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.evPane = b.dataset.pane; save(); renderEvents(); window.scrollTo({top: 0}); };
 $("#btnEvNext").onclick = () => { const keys = evQueue.splice(0).map(q => q.key); renderEvents(); speakItems(keys); };
 $("#btnEvClear").onclick = () => { evQueue.length = 0; renderEvents(); };
-$("#btnEvStop").onclick = () => { stopAll(); };
 $("#evFollow").onchange = e => { S.ev.follow = e.target.checked; save(); setFollow(S.ev.follow); if (S.ev.follow) fetchEvents(); else renderEvents(); };
 $("#evAuto").onchange = e => { S.ev.auto = e.target.checked; save(); drainQueue(); };
 $("#savesPeriod").onchange = e => { e.target.dataset.touched = "1"; };
@@ -1529,6 +1668,8 @@ $("#evLangSeg").onclick = e => { const b = e.target.closest("button"); if (!b) r
 setFollow(S.ev.follow);
 
 // ---------------------------------------------------------------- init
+// Yläpalkin korkeus tarttuvia elementtejä varten
+new ResizeObserver(([e]) => document.documentElement.style.setProperty("--appbar-h", e.target.offsetHeight + "px")).observe($(".appbar"));
 renderHeader();
 initTts();
 loadGames();

@@ -14,9 +14,9 @@ Tämä ohje on luettavissa myös [GitHubin Wikissä](https://github.com/Konderi/
 | [Ottelun valinta](Ottelun-valinta.md) | Ottelun haku ja käsin luotu ottelu |
 | [Kokoonpanot](Kokoonpanot.md) | Pelaajien tarkistus, kentät, kapteenit, ääntämys |
 | [Kokoonpanokuulutus](Kokoonpanokuulutus.md) | Tervetulotoivotus, joukkueet ja tuomarit ennen ottelua |
-| [Pelitapahtumat](Pelitapahtumat.md) | Maalit, rangaistukset ja aikalisät ottelun aikana |
+| [Pelitapahtumat](Pelitapahtumat.md) | Ottelu-näkymä: seuranta, jono, voimasuhde |
 | [Rangaistukset ja voimasuhde](Rangaistukset-ja-voimasuhde.md) | ”Joukkueet täysilukuiset” ja Päättyi-painike |
-| [Käsikuulutukset](Kasikuulutukset.md) | Kaikki muut ohjeen kuulutukset painikkeista |
+| [Käsikuulutukset](Kasikuulutukset.md) | Kuulutukset-näkymä: kiinteät kuulutukset painikkeista |
 | [Äänet ja ääntämys](Aanet-ja-aantamys.md) | Jarmo ja Kaisa, lukutyyli, englanti, nimien korjaus |
 | [Ongelmatilanteet](Ongelmatilanteet.md) | Usein kysytyt kysymykset ja vianetsintä |
 | [Ylläpito](Yllapito.md) | Salasana, avaimet, julkaisu, kustannukset |
@@ -28,7 +28,7 @@ Sovelluksessa on neljä välilehteä. Puhelimella ne ovat alareunassa ja tableti
 1. **Ottelu**: valitse päivän ottelu.
 2. **Kokoonpanot**: tarkista joukkueet.
 3. **Kuulutus**: kokoonpanokuulutus ennen ottelua.
-4. **Tapahtumat**: pelikuulutukset ottelun aikana. Punainen numero kertoo kuuluttamattomat tapahtumat.
+4. **Tapahtumat**: kuulutukset ottelun aikana, jaettuna kahteen näkymään. *Ottelu*-näkymässä ovat tilanne, jono ja voimasuhde, ja *Kuulutukset*-näkymässä kiinteät kuulutukset. Punainen numero kertoo kuuluttamattomat tapahtumat.
 
 Yläpalkissa näkyvät valittu ottelu, tulostilanne ja *LIVE*-merkki, kun ottelu on käynnissä. Kun ääni soi, alareunassa näkyy toistopalkki, jonka **■ Pysäytä**-painike keskeyttää kuulutuksen heti.
 

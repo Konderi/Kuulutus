@@ -20,12 +20,12 @@
 ## Ottelun aikana
 
 8. Siirry **Tapahtumat**-välilehdelle ja laita **Seuraa ottelua** päälle.
-9. Kun toimitsija kirjaa maalin tai rangaistuksen, kuulutus ilmestyy jonoon. **Kuuluta, kun peli jatkuu** (ohjeen mukaan seuraavan aloituksen jälkeen): paina **▶ Kuuluta jono**.
-10. Kun rangaistus päättyy hallin kellon mukaan, paina **Rangaistukset käynnissä** -kortissa rangaistuksen kohdalla **Päättyi**. Sovellus kuuluttaa esim. ”Joukkueet täysilukuiset”.
-11. Muut kuulutukset löytyvät **Muut kuulutukset** -kortista: Kunnioita peliä, erän viimeiset minuutit, hylätty maali, torjunnat, yleisömäärä, lopputulos jne.
+9. Kun toimitsija kirjaa maalin tai rangaistuksen, se ilmestyy keltaisella korostettuun **Kuulutettavat**-korttiin. Kuuluta, kun peli jatkuu (ohjeen mukaan seuraavan aloituksen jälkeen): paina **▶ Kuuluta**.
+10. Kun rangaistus päättyy hallin kellon mukaan, paina **Voimasuhde**-kortissa rangaistuksen kohdalla **Päättyi**. Sovellus kuuluttaa esim. ”Joukkueet täysilukuiset”.
+11. Kiinteät kuulutukset löytyvät näkymästä **Kuulutukset** (puhelimella valitsin sivun yläosassa): Kunnioita peliä, erän viimeiset minuutit, pelikello, hylätty maali, jatkoaika jne.
 
 ## Ottelun jälkeen
 
-12. Kuuluta **Torjunnat** (Kaikki), **Parhaat pelaajat** ja **Lopputulos**.
+12. **Kuulutukset → Ottelun jälkeen**: Torjunnat (koko ottelu), Parhaat pelaajat, Yleisömäärä ja Lopputulos.
 
 > **Vinkki:** Pidä näyttö päällä ja laite laturissa. Jos näyttö lukittuu, selain voi pysäyttää seurannan.

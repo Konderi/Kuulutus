@@ -11,8 +11,8 @@ HyRin junioriotteluiden kuulutusapuri. Sovellus hakee ottelun, kokoonpanot ja pe
 - **Kokoonpanot**: pelaajat, maalivahdit, kapteenit ja valmentajat haetaan TiTusta. Kentät voi merkitä käsin, ja nimen ääntämystä voi korjata.
 - **Kokoonpanokuulutus**: tervetulotoivotus, vierasjoukkue ensin (maalivahdit, kenttäpelaajat numerojärjestyksessä, päävalmentaja) ja tuomarit. Tekstin voi lukea ruudulta tai antaa sovelluksen lukea sen ääneen kokonaan tai lohko kerrallaan.
 - **Pelitapahtumat**: maalit, rangaistukset, aikalisät ja maalivahdin vaihdot tulevat TiTusta jonoon 5 sekunnin välein. Ohjeen mukaan ne kuulutetaan, kun peli jatkuu, joko käsin tai automaattisesti.
-- **Rangaistukset käynnissä**: päättymisajat ja voimasuhde näkyvät. **Päättyi**-painike kuuluttaa ”täysilukuinen” ohjeen taulukon mukaan.
-- **Käsikuulutukset**: voimasuhteet, Kunnioita peliä, erien viimeiset minuutit, hylätty maali syineen, maalin korjaus, jatkoaika, voittomaalikilpailu, parhaat pelaajat, pelikello, torjunnat, yleisömäärä, lopputulos ja vapaa teksti.
+- **Voimasuhde**: käynnissä olevat rangaistukset, päättymisajat ja voimasuhde. **Päättyi**-painike kuuluttaa ”täysilukuinen” ohjeen taulukon mukaan.
+- **Kiinteät kuulutukset** (oma näkymä): voimasuhteet, Kunnioita peliä, erien viimeiset minuutit, hylätty maali syineen, maalin korjaus, jatkoaika, voittomaalikilpailu, parhaat pelaajat, pelikello, torjunnat, yleisömäärä, lopputulos ja vapaa teksti.
 - **Puheääni**: ElevenLabsin suomalaiset äänet **Jarmo** (oletus) ja **Kaisa**.
   - Kuuluttaja-tyylissä maalit luetaan innostuneesti ja maalintekijän nimi huutaen.
   - Englanninkielisessä kuulutuksessa nimet luetaan suomalaisittain.

@@ -11,14 +11,14 @@ Junioreilla TiTussa ei ole kenttäjakoa, ja pelipaikka on joskus vain ”kenttä
 
 **Tapahtuma ei tule jonoon.**
 - Onko **Seuraa ottelua** päällä?
-- Onko tapahtumatyyppi valittu kohdassa *Mitä kuulutetaan*?
+- Onko tapahtumatyyppi valittu asetuksissa (*Muuta → Tulospalvelusta jonoon*)?
 - Onko toimitsija jo kirjannut tapahtuman? Tarkista tilanne tulospalvelu.leijonat.fi:stä.
 
 **Automaattinen kuulutus ei käynnisty.**
-TiTun peliaika päivittyy noin 30 sekunnin välein ja vain, jos kirjuri käyttää kelloa. Kuuluta jono käsin: **▶ Kuuluta jono**.
+TiTun peliaika päivittyy noin 30 sekunnin välein ja vain, jos kirjuri käyttää kelloa. Kuuluta jono käsin: **▶ Kuuluta**.
 
 **Maalintekijä tai syöttäjä on väärin.**
-Pyydä kirjuria korjaamaan tieto TiTuun. Korjaus tulee jonoon automaattisesti, tai voit kuuluttaa sen kohdasta **Maali → Kuuluta korjaus**.
+Pyydä kirjuria korjaamaan tieto TiTuun. Korjaus tulee jonoon automaattisesti, tai voit kuuluttaa sen kohdasta **Kuulutukset → Maalitilanteet → Kuuluta korjaus**.
 
 **Ääni ei kuulu.**
 - Tarkista laitteen äänenvoimakkuus, hiljaisen tilan kytkin (iPhone) ja kaiutinliitäntä.
